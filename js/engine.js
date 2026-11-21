@@ -808,6 +808,7 @@ function stInv() {
     const host = $('#invQ');
     host.innerHTML = `<div class="verdict ${got >= 8 ? 'correct' : got >= 4 ? 'partial' : 'incorrect'}" style="margin:12px 0"><h4>Test selection — ${got}/10</h4>${hit.length}/${key.length} key investigations ordered.${miss.length ? `<br><b>Missed:</b> ${miss.map(k => esc(INV[k][0])).join(', ')}` : ''}${extra.length ? `<br><b>Probably not needed here:</b> ${extra.map(k => esc(INV[k][0])).join(', ')}` : ''}</div>`;
     if (miss.length) { miss.forEach(k => { P.ordered[k] = {at: P.t, ready: P.t, tat: INV[k][2], auto: true}; }); host.insertAdjacentHTML('beforeend', '<p class="setting">The missed key tests have been added to your results so you can interpret them.</p>'); drawResults(); }
+    setTimeout(() => host.scrollIntoView({behavior: 'smooth', block: 'start'}), 150);
     await runQs(host, P.def.Q.filter(q => q.s === 'inv'), 'invq');
     nextBtn(host, 'Manage the patient', () => go('manage'));
   };
@@ -815,12 +816,12 @@ function stInv() {
 function INV_TAT(o) { return o.tat !== undefined ? o.tat : o.ready - o.at; }
 /* how long a test really takes, and what that means for you */
 function tatLabel(id) {
-  const t = INV[id][2], g = INV[id][1];
+  const t = INV[id][2], g = INV[id][1], kind = /imag|radio|scan/i.test(g) || /x-ray|ct |mri|ultrasound|scan|echo|dexa/i.test(INV[id][0]) ? 'imaging' : 'lab';
   if (g === 'Bedside' && t <= 15) return `bedside test · ${t <= 5 ? 'minutes' : '~' + t + ' min'}: act on it straight away`;
-  if (t <= 90) return `lab · ~${t >= 60 ? (t / 60).toFixed(t % 60 ? 1 : 0) + ' h' : t + ' min'}`;
-  if (t <= 240) return `lab · ~${Math.round(t / 60)} h: start treatment while you wait`;
-  if (t < 1440) return `lab · ~${Math.round(t / 60)} h`;
-  return `in real life ~${Math.round(t / 1440)} day${t >= 2880 ? 's' : ''}: never wait for this before treating`;
+  if (t <= 90) return `${kind} · ~${t >= 60 ? (t / 60).toFixed(t % 60 ? 1 : 0) + ' h' : t + ' min'}`;
+  if (t <= 240) return `${kind} · ~${Math.round(t / 60)} h: start treatment while you wait`;
+  if (t < 1440) return `${kind} · ~${Math.round(t / 60)} h`;
+  return `in real life ~${Math.round(t / 1440)} day${t >= 2880 ? 's' : ''}${g === 'Micro' ? ': start treatment before it\'s back' : ''}`;
 }
 /* results arrive in real time: 1 in-game minute = 1 real second; when one lands, hospital time catches up to it */
 let resultTimer = null;
@@ -863,7 +864,8 @@ function resultHTML(id) {
     return `<div class="ecgwrap">${ecgSVG(e)}</div>`;
   }
   if (d[3] === 'cxr') return `<canvas data-cxr="${id}" aria-label="Chest X-ray"></canvas>${p.cxrNote ? `<p class="setting">${esc(p.cxrNote)}</p>` : ''}`;
-  if (d[3] === 'xr') return p.xr ? `<canvas data-xr="${id}" aria-label="X-ray"></canvas>${p.xr.note ? `<p class="setting">${esc(p.xr.note)}</p>` : ''}` : `<p>${esc(r || 'No bony abnormality detected.')}</p>`;
+  if (d[3] === 'xr' && p.xr) return `<canvas data-xr="${id}" aria-label="X-ray"></canvas>${p.xr.note ? `<p class="setting">${esc(p.xr.note)}</p>` : ''}`;
+  if (d[3] === 'xr' && !r) return '<p>No bony abnormality detected.</p>';
   if (r && typeof r === 'object') return `<p>${esc(r.text)}</p>${r.img ? `<div class="refimg"><figure><img src="img/${r.img}.jpg" alt="${esc(r.cap || d[0])}"><figcaption>${esc(r.cap || '')}</figcaption></figure></div>` : ''}`;
   return `<p>${esc(r !== undefined && r !== null ? r : d[4])}</p>`;
 }
