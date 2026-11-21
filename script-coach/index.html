@@ -60,6 +60,12 @@ input[type=text]{width:100%}
 .line.future{opacity:.55}
 .line.done{background:var(--okbg)}
 .line.missed{background:var(--badbg)}
+.line.close{background:var(--warnbg)}
+.line .miss{font:600 13.5px var(--fd);color:#a06d00;margin-top:6px}
+.line.missed .miss{color:var(--bad)}
+.line.close .w:not(.got){color:#a06d00;text-decoration:underline wavy #e5a800;background:none}
+.badge{display:inline-flex;align-items:center;gap:6px;font:600 12.5px var(--fd);border-radius:999px;padding:3px 10px;background:#fff;color:var(--ink2);box-shadow:inset 0 0 0 2px #d6e1dd}
+.badge.ok{background:var(--okbg);color:var(--ok);box-shadow:none}
 .line.cur{box-shadow:0 0 0 3px var(--teal),0 5px 0 rgba(18,124,118,.25);opacity:1;padding:18px 20px}
 .line .words{font-size:18px;line-height:1.9}
 .line.cur .words{font-size:22px}
@@ -147,6 +153,7 @@ input[type=text]{width:100%}
         <label><input type="checkbox" id="animOn" checked> Animations</label>
         <select id="sectSel" aria-label="Practise one section" style="padding:5px 10px;font-size:14px;max-width:260px"></select>
         <span id="langNote" style="color:var(--ink2)"></span>
+        <span class="badge" id="brainBadge" title="Accepts the same meaning in your own words">Meaning check: loading…</span>
       </div>
       <div class="prog" aria-hidden="true"><i id="progI"></i></div>
     </div>
@@ -159,14 +166,18 @@ input[type=text]{width:100%}
   <button class="mic" id="micBtn" aria-label="Start speaking">🎙</button>
   <div class="heard" id="heard" aria-live="polite">Tap the mic and say the highlighted line. (It checks your words, not your pronunciation.)</div>
   <button class="btn sec sm" id="peekBtn" title="Show the next word">Hint</button>
+  <button class="btn sec sm" id="nextBtn" title="Move on; anything you didn't say is flagged">Next ›</button>
   <button class="btn sec sm" id="skipBtn">I forgot · show me</button>
   <button class="btn sec sm" id="typeBtn">Type instead</button>
+  <button class="btn sec sm" id="handyBtn" title="Use the Handy app's speech-to-text instead of the browser">Use Handy</button>
   <div class="typebox hide" id="typeBox"><input type="text" id="typeIn" placeholder="Type the line and press Enter" autocomplete="off"><button class="btn sm" id="typeGo">Check</button></div>
 </div></div>
 
 <div id="stageHost"></div>
 
 <script src="scripts.js"></script>
+<script src="js/vendor/ort/ort.wasm.min.js"></script>
+<script src="js/brain.js"></script>
 <script>
 'use strict';
 const $ = s => document.querySelector(s);
@@ -203,7 +214,7 @@ function parse(text) {
     const [say, mean] = l.split('|').map(s => (s || '').trim());
     const act = /^\[.*\]$/.test(say) || /^\*\*.*\*\*$/.test(say);
     const clean = act ? say.replace(/^\[|\]$|^\*\*|\*\*$/g, '').trim() : say;
-    const me = DB.prefs.me || 'your name';
+    const me = DB.prefs.me || '(name)';
     const shown = clean.replace(/\{me\}/g, me).replace(/(ngu|name is)\s*____/gi, (m, a) => a + ' ' + (DB.prefs.me || '____')).replace(/\s*____\s*/g, ' (name) ').replace(/\s+([.,?!])/g, '$1').trim();
     out.push({sect, text: shown, mean: (mean || '').replace(/____/g, '(name)'), act, words: shown.split(/\s+/).filter(Boolean)});
   }
@@ -225,7 +236,7 @@ function wordMatch(exp, heard) {
   if (exp.includes('/') && !/^\d/.test(exp)) return exp.split('/').some(x => x && wordMatch(x, heard));
   const e = norm(exp), h = norm(heard); if (!e || !h) return false;
   if (e === h || NUM[h] === e || NUM[e] === h) return true;
-  const thr = e.length <= 3 ? 0.99 : e.length <= 5 ? 0.6 : 0.68;
+  const thr = e.length <= 3 ? 0.99 : e.length <= 5 ? 0.75 : 0.68;
   if (sim(e, h) >= thr) return true;
   if (e.length >= 5 && h.length >= 4 && (e.startsWith(h) || h.startsWith(e))) return true;
   return false;
@@ -239,8 +250,8 @@ function matchLine(line, heardText, got) {
     if (got[i]) continue;
     const e = line.words[i];
     // short words (a, I, is…) are easy to miss; let them ride along with their neighbours
-    for (let k = p; k < Math.min(H.length, p + 6); k++) {
-      if (wordMatch(e, H[k]) || (norm(e).length >= 6 && wordMatch(e, H2[k]))) { got[i] = true; p = k + 1; break; }
+    for (let k = p; k < H.length; k++) {
+      if (wordMatch(e, H[k]) || (norm(e).length >= 6 && wordMatch(e, H2[k]))) { got[i] = true; if (k - p <= 4) p = k + 1; break; }   // a far-off match doesn't drag the pointer along
     }
   }
   line.words.forEach((w, i) => { if (OPTIONAL(w) && !got[i]) got[i] = 'opt'; });
@@ -347,12 +358,14 @@ function startRun(id, onlyIdx, sect) {
   const sects = [...new Set(all.map(l => l.sect).filter(Boolean))];
   $('#sectSel').innerHTML = `<option value="">Whole script (${all.length} lines)</option>` + sects.map(x => `<option ${x === sect ? 'selected' : ''}>${esc(x)}</option>`).join('');
   $('#sectSel').classList.toggle('hide', sects.length < 2);
-  RUN = {s, lines, origIdx: onlyIdx || lines.map((_, i) => i), cur: 0, got: lines.map(l => l.words.map(w => OPTIONAL(w) ? 'opt' : false)), state: lines.map(() => ''), peek: lines.map(() => 0), t0: Date.now(), heard: ''};
+  RUN = {s, lines, origIdx: onlyIdx || lines.map((_, i) => i), cur: 0, why: [], got: lines.map(l => l.words.map(w => OPTIONAL(w) ? 'opt' : false)), state: lines.map(() => ''), peek: lines.map(() => 0), t0: Date.now(), heard: ''};
   $('#pTitle').textContent = s.name;
   $('#langNote').textContent = `Listening in ${LANGN[s.lang] || s.lang}`;
   $('#summary').classList.add('hide'); $('#lines').classList.remove('hide');
   setMode(DB.prefs.mode); $('#sayActs').checked = DB.prefs.sayActs; $('#animOn').checked = DB.prefs.anim;
   view('vPlay'); drawLines(); settleActions();
+  $('#heard').innerHTML = iosCant(s.lang) ? `On iPhone you can't speak ${LANGN[s.lang]} to it (Apple dictation doesn't have it), so <b>Type instead</b> is open. Speaking works in Chrome on Android or a laptop.` : 'Tap the mic and say the highlighted line. (It checks your words, not your pronunciation.)';
+  $('#typeBox').classList.toggle('hide', !iosCant(s.lang));
 }
 function setMode(m) { DB.prefs.mode = m; save(); document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.m === m)); $('#lines').classList.toggle('hidemode', m === 'hide'); }
 document.querySelectorAll('.seg button').forEach(b => b.onclick = () => setMode(b.dataset.m));
@@ -361,11 +374,15 @@ $('#animOn').onchange = e => { DB.prefs.anim = e.target.checked; save(); };
 $('#sectSel').onchange = e => startRun(RUN.s.id, null, e.target.value || null);
 $('#backBtn').onclick = () => { drawLib(); view('vLib'); };
 
+const STOP = new Set('a an the and or of to in on at for is are am be i i\'m im me my you your we us it this that so as with will can could would should may might do does did please now just okay ok'.split(' '));
+function missingWords(l, got) { return l.words.filter((w, k) => !got[k] && !STOP.has(norm(w)) && norm(w).length > 1 && got[k] !== 'opt').map(w => w.replace(/[.,?!:;"]+$/g, '')); }
 function lineHTML(l, i) {
   const st = RUN.state[i], cls = ['line', l.act ? 'act' : '', i === RUN.cur && !st ? 'cur' : '', st, i > RUN.cur && !st ? 'future' : ''].join(' ');
   const words = l.words.map((w, k) => `<span class="w${RUN.got[i][k] ? ' got' : ''}${RUN.got[i][k] === 'opt' ? ' opt' : ''}${k < RUN.peek[i] ? ' peek' : ''}">${esc(w)}</span>`).join('');
   const ico = l.act ? `<span class="ico" aria-hidden="true">${animFor(l.text).ico}</span>` : '';
-  return `<div class="${cls}" data-i="${i}">${l.act ? `<div class="words">${ico}${esc(l.text)}</div>` : `<div class="words">${words}</div>`}${l.mean ? `<div class="mean">${esc(l.mean)}</div>` : ''}</div>`;
+  const miss = (st === 'close' || st === 'missed') && !l.act ? missingWords(l, RUN.got[i]) : [];
+  const flag = st === 'close' && miss.length ? `<div class="miss">Said it, but missed: ${miss.map(esc).join(', ')}</div>` : st === 'close' && RUN.why[i] ? `<div class="miss">${esc(RUN.why[i])}</div>` : st === 'missed' ? `<div class="miss">Not said${miss.length ? ' — key words: ' + miss.slice(0, 6).map(esc).join(', ') : ''}</div>` : '';
+  return `<div class="${cls}" data-i="${i}">${l.act ? `<div class="words">${ico}${esc(l.text)}</div>` : `<div class="words">${words}</div>`}${l.mean ? `<div class="mean">${esc(l.mean)}</div>` : ''}${flag}</div>`;
 }
 function drawLines() {
   let html = '', sect = null;
@@ -384,31 +401,61 @@ function settleActions() {
   if (RUN.cur >= RUN.lines.length) return finish();
   drawLines();
 }
-function completeLine(missed, rest) {
+function completeLine(missed, rest, close) {
   const i = RUN.cur, l = RUN.lines[i];
-  RUN.state[i] = missed ? 'missed' : 'done';
+  RUN.state[i] = missed ? 'missed' : close ? 'close' : 'done';
   if (l.act && !missed) playAnim(l.text);
   RUN.cur++; RUN.heard = ''; resetHeard();
-  $('#heard').innerHTML = missed ? 'Shown in red — say it next time. Carry on with the next line.' : '<b>Nice.</b> Next line…';
+  $('#heard').innerHTML = missed ? 'Shown in red — say it next time. Carry on with the next line.' : close ? '<b>Close enough</b> — the missing bits are flagged in amber. Next line…' : '<b>Nice.</b> Next line…';
   settleActions();
   // you said two lines in one breath: the rest counts towards the next line
-  if (rest && rest.split(' ').length >= 1 && RUN.cur < RUN.lines.length) { finalText = rest; hear(rest, true); }
+  if (rest && rest.split(' ').length >= 2 && RUN.cur < RUN.lines.length) hear(rest, false);
+}
+let judging = 0;
+async function judge(text) {
+  const idx = RUN.cur, l = RUN.lines[idx], got = RUN.got[idx];
+  const ratio = matchLine(l, text, got.slice());
+  const n = text.split(/\s+/).filter(Boolean).length;
+  let meaning = 0;
+  if (typeof Brain !== 'undefined' && Brain.ready && n >= 2) { try { const [a, b] = await Brain.embed([text, l.text]); for (let k = 0; k < a.length; k++) meaning += a[k] * b[k]; } catch (e) {} }
+  if (RUN.cur !== idx) return;                                   // already moved on
+  // how close in meaning counts depends on line length (long lines get paraphrased more); unrelated speech scores ~0.2-0.3
+  const need = l.words.length <= 3 ? 0.55 : l.words.length < 10 ? 0.6 : 0.48;
+  if (meaning >= need || ratio >= 0.5) {
+    if (missingWords(l, got).length === 0 && ratio >= 0.7) return completeLine(false, '');
+    if (meaning >= need && ratio < 0.5) RUN.why[idx] = 'Same meaning, different words.';
+    return completeLine(false, '', true);
+  }
+  $('#heard').innerHTML = `Heard: <b>${esc(text)}</b> — not quite. Try the line again, or tap <b>Next ›</b>.`;
 }
 function hear(text, isFinal) {
   if (!RUN || RUN.cur >= RUN.lines.length) return;
   const l = RUN.lines[RUN.cur];
-  $('#heard').innerHTML = `Heard: <b>${esc(text)}</b>`;
+  $('#heard').innerHTML = `${isFinal ? 'Heard' : 'Hearing'}: <b>${esc(text.split(/\s+/).slice(-24).join(' '))}</b>`;
   const ratio = matchLine(l, text, RUN.got[RUN.cur]);
   // fill words live as you speak
   const el = document.querySelector(`.line[data-i="${RUN.cur}"]`);
   if (el) el.querySelectorAll('.w').forEach((w, k) => w.classList.toggle('got', RUN.got[RUN.cur][k]));
-  if (ratio >= 0.8 || (isFinal && ratio >= 0.7)) completeLine(false, matchLine.rest);
+  if (ratio >= 0.85 && missingWords(l, RUN.got[RUN.cur]).length === 0) completeLine(false, matchLine.rest);
+  else if (ratio >= 0.8 && isFinal) completeLine(false, matchLine.rest, missingWords(l, RUN.got[RUN.cur]).length > 0);
+  else if (isFinal) { const j = ++judging; setTimeout(() => { if (j === judging) judge(text); }, 250); }
 }
+$('#nextBtn').onclick = () => { if (!RUN || RUN.cur >= RUN.lines.length) return; const said = RUN.got[RUN.cur].some(g => g === true); completeLine(!said, '', said); };
 $('#skipBtn').onclick = () => { if (!RUN || RUN.cur >= RUN.lines.length) return; completeLine(true); };
 $('#peekBtn').onclick = () => { if (!RUN || RUN.cur >= RUN.lines.length) return; const i = RUN.cur; const next = RUN.got[i].findIndex((g, k) => !g && k >= RUN.peek[i]); RUN.peek[i] = next < 0 ? RUN.peek[i] : next + 1; RUN.hints = (RUN.hints || 0) + 1; drawLines(); };
 $('#typeBtn').onclick = () => { $('#typeBox').classList.toggle('hide'); if (!$('#typeBox').classList.contains('hide')) $('#typeIn').focus(); };
 const typeCheck = () => { const v = $('#typeIn').value.trim(); if (!v) return; hear(v, true); $('#typeIn').value = ''; };
-$('#typeGo').onclick = typeCheck; $('#typeIn').onkeydown = e => { if (e.key === 'Enter') typeCheck(); };
+$('#typeGo').onclick = typeCheck;
+/* Handy mode: hold your Handy shortcut and talk; Handy pastes the words into the box and we check them straight away */
+let handy = false, handyT = null;
+function setHandy(on) {
+  handy = on; $('#handyBtn').textContent = on ? 'Handy: on' : 'Use Handy'; $('#handyBtn').classList.toggle('warn', on);
+  if (on) { stopMic(); $('#typeBox').classList.remove('hide'); $('#typeIn').placeholder = 'Hold your Handy shortcut and speak…'; $('#typeIn').focus(); $('#heard').innerHTML = 'Handy mode: hold your Handy shortcut, say the line, let go. Keep this box selected.'; }
+  else $('#typeIn').placeholder = 'Type the line and press Enter';
+}
+$('#handyBtn').onclick = () => setHandy(!handy);
+$('#typeIn').addEventListener('input', () => { if (!handy) return; clearTimeout(handyT); handyT = setTimeout(typeCheck, 500); });
+$('#typeIn').addEventListener('blur', () => { if (handy) setTimeout(() => { if (handy && !document.querySelector('.stage') && document.activeElement.tagName !== 'SELECT') $('#typeIn').focus(); }, 150); }); $('#typeIn').onkeydown = e => { if (e.key === 'Enter') typeCheck(); };
 
 function finish() {
   stopMic();
@@ -416,37 +463,43 @@ function finish() {
   const words = sIdx.reduce((t, i) => t + RUN.lines[i].words.length, 0), got = sIdx.reduce((t, i) => t + RUN.got[i].filter(Boolean).length, 0);
   const pct = words ? Math.round(100 * got / words) : 100;
   const missed = RUN.lines.map((l, i) => ({l, i})).filter(x => RUN.state[x.i] === 'missed');
+  const close = RUN.lines.map((l, i) => ({l, i, m: missingWords(l, RUN.got[i])})).filter(x => RUN.state[x.i] === 'close' && x.m.length);
   const secs = Math.round((Date.now() - RUN.t0) / 1000);
   if (RUN.origIdx.length === parse(RUN.s.text).length) { DB.best[RUN.s.id] = Math.max(DB.best[RUN.s.id] || 0, pct); save(); }
   $('#lines').classList.add('hide'); $('#progI').style.width = '100%';
   $('#summary').classList.remove('hide');
   $('#summary').innerHTML = `<div class="card" style="text-align:center"><div class="big">${pct}%</div><div>of the words said · ${said.length - missed.filter(m => !m.l.act).length}/${said.length} lines without help · ${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}${RUN.hints ? ` · ${RUN.hints} hint${RUN.hints > 1 ? 's' : ''}` : ''}</div></div>
+  ${close.length ? `<div class="card"><h3 style="margin-bottom:8px">Said, but with bits missing</h3><ul class="mlist">${close.map(c => `<li>${esc(c.l.text)}<br><span style="color:#a06d00;font-weight:700">Missed: ${c.m.map(esc).join(', ')}</span></li>`).join('')}</ul></div>` : ''}
   ${missed.length ? `<div class="card"><h3 style="margin-bottom:8px">Lines to work on</h3><ul class="mlist">${missed.map(m => `<li>${m.l.act ? '<b>' + esc(m.l.text) + '</b>' : esc(m.l.text)}</li>`).join('')}</ul></div>` : '<div class="card" style="text-align:center"><b>Every line, no help. That script is yours.</b></div>'}
-  <div class="row" style="justify-content:center">${missed.length ? '<button class="btn warn" id="redoMissed">Practise just these</button>' : ''}<button class="btn" id="again">Go again</button><button class="btn sec" id="toHide">${DB.prefs.mode === 'hide' ? 'Back to read along' : 'Try it with words hidden'}</button></div>`;
+  <div class="row" style="justify-content:center">${missed.length + close.length ? '<button class="btn warn" id="redoMissed">Practise just these</button>' : ''}<button class="btn" id="again">Go again</button><button class="btn sec" id="toHide">${DB.prefs.mode === 'hide' ? 'Back to read along' : 'Try it with words hidden'}</button></div>`;
   const sect = $('#sectSel').value || null;
   $('#again').onclick = () => startRun(RUN.s.id, null, sect);
   $('#toHide').onclick = () => { setMode(DB.prefs.mode === 'hide' ? 'read' : 'hide'); startRun(RUN.s.id, null, sect); };
-  const rm = $('#redoMissed'); if (rm) rm.onclick = () => startRun(RUN.s.id, missed.map(m => RUN.origIdx[m.i]));
+  const rm = $('#redoMissed'); if (rm) rm.onclick = () => startRun(RUN.s.id, missed.concat(close).map(m => RUN.origIdx[m.i]));
 }
 
 /* ---------- speech recognition (free, built into Chrome / Edge / Android) ---------- */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+// iPhones and iPads listen through Apple dictation, which has no isiZulu, isiXhosa or Sesotho
+const iosCant = lang => IOS && !/^(en|af)/.test(lang);
 let rec = null, listening = false, finalText = '';
 function resetHeard() { finalText = ''; }
 function startMic() {
+  if (iosCant(RUN.s.lang)) { $('#heard').innerHTML = `iPhones can't listen in ${LANGN[RUN.s.lang]} (Apple dictation doesn't have it). Use <b>Type instead</b> here, or open this page in Chrome on an Android phone or a laptop to speak.`; $('#typeBox').classList.remove('hide'); return; }
   if (!SR) { $('#heard').innerHTML = 'This browser can\'t listen. Use <b>Chrome</b> (Android, Windows or Mac), or tap <b>Type instead</b>.'; $('#typeBox').classList.remove('hide'); return; }
-  rec = new SR(); rec.lang = RUN.s.lang; rec.continuous = true; rec.interimResults = true; rec.maxAlternatives = 3;
+  rec = new SR(); rec.lang = RUN.s.lang; rec.continuous = true; rec.interimResults = true; rec.maxAlternatives = 1;
   rec.onresult = e => {
-    let interim = '';
+    let interim = '', fin = '';
     for (let i = e.resultIndex; i < e.results.length; i++) {
       const r = e.results[i];
-      // use every alternative the engine offers: it gives the fuzzy matcher more chances
-      const alts = Array.from(r).map(a => a.transcript).join(' ');
-      if (r.isFinal) finalText += ' ' + alts; else interim += ' ' + alts;
+      if (r.isFinal) fin += ' ' + r[0].transcript; else interim += ' ' + r[0].transcript;
     }
-    hear((finalText + ' ' + interim).trim(), !interim);
+    // each phrase is judged on its own; words you already got stay ticked
+    if (fin.trim()) hear(fin.trim(), true); else if (interim.trim()) hear(interim.trim(), false);
   };
-  rec.onerror = e => { if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { listening = false; micUI(); $('#heard').innerHTML = 'Microphone blocked. Allow the mic for this site (padlock in the address bar), or tap <b>Type instead</b>.'; } else if (e.error === 'language-not-supported') { listening = false; micUI(); $('#heard').innerHTML = `This browser can't listen in ${LANGN[RUN.s.lang]}. Use Chrome, or tap <b>Type instead</b>.`; } };
+  rec.onerror = e => { if (e.error === 'service-not-allowed' && IOS) { listening = false; micUI(); $('#heard').innerHTML = 'Your iPhone needs <b>Dictation</b> on: Settings → General → Keyboard → Enable Dictation (and Siri on). Then reload and tap the mic. Or tap <b>Type instead</b>.'; }
+    else if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { listening = false; micUI(); $('#heard').innerHTML = IOS ? 'Microphone blocked. Tap <b>aA</b> in the address bar → Website Settings → Microphone → Allow, then reload. Or tap <b>Type instead</b>.' : 'Microphone blocked. Allow the mic for this site (padlock in the address bar), or tap <b>Type instead</b>.'; } else if (e.error === 'language-not-supported') { listening = false; micUI(); $('#heard').innerHTML = `This browser can't listen in ${LANGN[RUN.s.lang]}. Use Chrome, or tap <b>Type instead</b>.`; } };
   rec.onend = () => { if (listening) { try { rec.start(); } catch (e) {} } };
   try { rec.start(); listening = true; } catch (e) {}
   micUI();
@@ -456,6 +509,8 @@ function micUI() { const b = $('#micBtn'); b.classList.toggle('on', listening); 
 $('#micBtn').onclick = () => listening ? stopMic() : startMic();
 
 drawLib();
+const brainBadge = ok => document.querySelectorAll('#brainBadge').forEach(b => { b.textContent = ok ? 'Meaning check: on' : 'Meaning check: words only'; b.classList.toggle('ok', !!ok); });
+if (window.ort && typeof Brain !== 'undefined') Brain.load().then(brainBadge).catch(() => brainBadge(false)); else brainBadge(false);
 </script>
 </body>
 </html>
