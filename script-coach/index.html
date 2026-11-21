@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#127c76">
+<title>Script Coach</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--mint:#bfe3d5;--mint2:#e6f4ee;--teal:#127c76;--teal2:#0d5e59;--coral:#ff6b5b;--coral2:#e5503f;--sun:#ffc845;--ink:#1e2a3a;--ink2:#55647a;--paper:#fffdf8;--line:#e3ddd0;--ok:#2fa36b;--okbg:#e3f6ec;--warnbg:#fff4d9;--bad:#d64545;--badbg:#fde8e6;--fd:Fredoka,'Trebuchet MS',Nunito,system-ui,sans-serif}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font:17px/1.5 Nunito,system-ui,sans-serif;color:var(--ink);background:var(--mint2)}
+button,input,select,textarea{font:inherit;color:inherit}
+h1,h2,h3{font-family:var(--fd);font-weight:600;margin:0}
+.hide{display:none!important}
+.btn{border:0;border-radius:14px;padding:11px 18px;font:600 16px var(--fd);background:var(--teal);color:#fff;cursor:pointer;box-shadow:0 4px 0 var(--teal2);transition:transform .08s}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--teal2)}
+.btn.sec{background:#fff;color:var(--ink);box-shadow:0 4px 0 #c9d4d0,inset 0 0 0 2px #d6e1dd}
+.btn.warn{background:var(--coral);box-shadow:0 4px 0 var(--coral2)}
+.btn.sm{padding:7px 12px;font-size:14px;border-radius:11px}
+.btn:disabled{opacity:.5;cursor:default}
+:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+.wrap{max-width:860px;margin:0 auto;padding:max(16px,env(safe-area-inset-top)) 16px 120px}
+
+/* top */
+.top{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.logo{width:44px;height:44px;border-radius:14px;background:var(--teal);display:grid;place-items:center;box-shadow:0 4px 0 var(--teal2);flex:none}
+.top h1{font-size:28px;color:var(--teal2)}
+.top .sub{color:var(--ink2);font-size:14px}
+.credit{margin-left:auto;font:600 12px var(--fd);color:var(--ink2);opacity:.75}
+
+/* library */
+.card{background:var(--paper);border-radius:20px;padding:18px;box-shadow:0 5px 0 rgba(18,124,118,.18);margin-bottom:14px}
+.lib{display:grid;gap:12px}
+.item{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.item h3{font-size:19px}
+.item .meta{color:var(--ink2);font-size:14px}
+.item .grow{flex:1;min-width:180px}
+.tag{display:inline-block;font:600 12px var(--fd);background:var(--mint);color:var(--teal2);border-radius:999px;padding:2px 10px;margin-right:6px}
+.empty{text-align:center;color:var(--ink2);padding:26px 10px}
+textarea{width:100%;min-height:300px;border:2px solid var(--line);border-radius:14px;padding:12px;font:15px/1.55 ui-monospace,Menlo,Consolas,monospace;background:#fff;resize:vertical}
+input[type=text],select{border:2px solid var(--line);border-radius:12px;padding:9px 12px;background:#fff}
+input[type=text]{width:100%}
+.help{background:var(--warnbg);border-radius:14px;padding:12px 14px;font-size:14.5px;margin:10px 0}
+.help code{background:#fff;border-radius:6px;padding:1px 6px;font-size:13.5px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+/* practice */
+.bar{position:sticky;top:0;z-index:5;background:var(--mint2);padding:10px 0 12px;margin:-6px 0 6px}
+.bar .row{justify-content:space-between}
+.seg{display:inline-flex;background:#fff;border-radius:12px;padding:3px;box-shadow:inset 0 0 0 2px #d6e1dd}
+.seg button{border:0;background:transparent;border-radius:9px;padding:6px 12px;font:600 14px var(--fd);cursor:pointer;color:var(--ink2)}
+.seg button[aria-pressed=true]{background:var(--teal);color:#fff}
+.prog{height:10px;border-radius:6px;background:#fff;overflow:hidden;margin-top:10px;box-shadow:inset 0 0 0 2px #d6e1dd}
+.prog i{display:block;height:100%;background:var(--ok);width:0;transition:width .3s}
+.sect{font:600 13px var(--fd);color:var(--teal);margin:18px 4px 6px;letter-spacing:.02em}
+.line{background:var(--paper);border-radius:16px;padding:12px 16px;margin-bottom:8px;box-shadow:0 3px 0 rgba(18,124,118,.12);transition:opacity .2s}
+.line.future{opacity:.55}
+.line.done{background:var(--okbg)}
+.line.missed{background:var(--badbg)}
+.line.cur{box-shadow:0 0 0 3px var(--teal),0 5px 0 rgba(18,124,118,.25);opacity:1;padding:18px 20px}
+.line .words{font-size:18px;line-height:1.9}
+.line.cur .words{font-size:22px}
+.line .mean{color:var(--ink2);font-size:14px;margin-top:4px}
+.w{display:inline-block;margin-right:.32em;border-radius:6px;padding:0 2px;transition:background .2s,color .2s}
+.w.got{color:var(--ok);font-weight:700}
+.w.opt{color:var(--ink2)!important;font-style:italic;font-weight:600;background:none!important}
+.hidemode .w:not(.got){color:transparent;background:repeating-linear-gradient(90deg,#c9d4d0 0 70%,transparent 70% 100%) bottom/100% 3px no-repeat;user-select:none}
+.hidemode .w.peek:not(.got){color:var(--ink2);background:none}
+.line.missed .w:not(.got){color:var(--bad);background:none}
+.hidemode .line.done .w{color:var(--ok);background:none}
+.act .words{font-weight:800;color:var(--teal2)}
+.act .ico{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:9px;background:var(--mint);margin-right:8px;vertical-align:middle;font-size:17px}
+.act.done .words::after{content:"  ✓ done";font:600 13px var(--fd);color:var(--ok)}
+.hint{font-size:14px;color:var(--ink2);margin-top:6px}
+
+/* dock */
+.dock{position:fixed;left:0;right:0;bottom:0;background:var(--paper);border-top:2px solid var(--line);padding:10px 14px max(10px,env(safe-area-inset-bottom));z-index:10}
+.dock .in{max-width:860px;margin:0 auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.mic{width:62px;height:62px;border-radius:50%;border:0;background:var(--coral);color:#fff;font-size:26px;cursor:pointer;box-shadow:0 4px 0 var(--coral2);flex:none}
+.mic.on{animation:pulse 1.2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,107,91,.55),0 4px 0 var(--coral2)}70%{box-shadow:0 0 0 16px rgba(255,107,91,0),0 4px 0 var(--coral2)}}
+.heard{flex:1;min-width:160px;font-size:14px;color:var(--ink2);min-height:22px}
+.heard b{color:var(--ink)}
+.typebox{flex-basis:100%;display:flex;gap:8px}
+.typebox input{flex:1}
+
+/* animation stage */
+.stage{position:fixed;right:18px;bottom:110px;width:220px;height:200px;background:var(--paper);border-radius:22px;box-shadow:0 8px 0 rgba(18,124,118,.25);z-index:20;display:grid;place-items:center;animation:pop .25s}
+.stage .cap{position:absolute;bottom:10px;left:0;right:0;text-align:center;font:600 15px var(--fd);color:var(--teal2)}
+@keyframes pop{from{transform:scale(.6);opacity:0}}
+@media (max-width:640px){#langNote{display:none}.bar .row{gap:8px}.dock .in{gap:8px}.dock .btn.sm{padding:6px 9px;font-size:13px}.stage{right:50%;transform:translateX(50%);bottom:auto;top:30%}.line.cur .words{font-size:20px}.top h1{font-size:24px}}
+
+/* summary */
+.big{font:700 64px var(--fd);color:var(--teal)}
+.mlist li{margin:4px 0}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="logo" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg></div>
+    <div><h1>Script Coach</h1><div class="sub">Say your clinical scripts out loud until they're automatic</div></div>
+    <div class="credit">Made by Muhammed Abed</div>
+  </div>
+
+  <!-- library -->
+  <section id="vLib">
+    <div class="help" role="note" style="margin-top:0"><b>Heads up:</b> Script Coach checks that you said the <b>right words in the right order</b>. It does <b>not</b> check your pronunciation. Practise how the words sound with your tutor, a classmate or a first-language speaker.</div>
+    <div class="card" style="padding:14px 16px"><div class="row"><label for="meName"><b>Your name</b></label><input type="text" id="meName" placeholder="Type your name" style="flex:1;min-width:160px;max-width:280px"><span class="meta" style="color:var(--ink2);font-size:14px">It goes into the scripts wherever you introduce yourself.</span></div></div>
+    <div class="row" style="margin-bottom:12px"><input type="text" id="q" placeholder="Search scripts…" style="flex:1;min-width:180px"><button class="btn" id="newBtn">+ New script</button><label class="btn sec" style="cursor:pointer">Import .txt<input type="file" id="fileIn" accept=".txt,text/plain" class="hide"></label></div>
+    <div class="seg" role="group" aria-label="Filter" id="groups" style="flex-wrap:wrap;margin-bottom:14px"></div>
+    <div class="lib" id="lib"></div>
+    <p style="color:var(--ink2);font-size:13.5px;margin-top:18px">Built-in scripts come from Mariam Baruffwala's GEMP 1 Clinical Skills &amp; OSCE Prep notes. Tap <b>Copy &amp; edit</b> on any of them to make your own version.</p>
+  </section>
+
+  <!-- editor -->
+  <section id="vEdit" class="hide">
+    <div class="card">
+      <h2 style="margin-bottom:10px" id="edTitle">New script</h2>
+      <label for="edName"><b>Name</b></label>
+      <input type="text" id="edName" placeholder="e.g. Knee examination" style="margin:4px 0 12px">
+      <div class="row" style="margin-bottom:10px"><label for="edLang"><b>Spoken in</b></label>
+        <select id="edLang"><option value="zu-ZA">isiZulu</option><option value="en-ZA">English (South Africa)</option><option value="xh-ZA">isiXhosa</option><option value="st-ZA">Sesotho</option><option value="af-ZA">Afrikaans</option></select></div>
+      <div class="help"><b>How to write a script</b> — one line per thing you say.<br>
+        <code># Inspection</code> starts a new section.<br>
+        <code>[Wash hands]</code> in square brackets is an <b>action</b>: you don't say it, it's ticked and shown in bold with an animation.<br>
+        <code>Sawubona … | Hello …</code> — anything after a <code>|</code> is the meaning, shown smaller under the line.</div>
+      <textarea id="edText" spellcheck="false"></textarea>
+      <div class="row" style="margin-top:12px"><button class="btn" id="edSave">Save</button><button class="btn sec" id="edCancel">Cancel</button><button class="btn sec hide" id="edDel" style="margin-left:auto">Delete</button></div>
+    </div>
+  </section>
+
+  <!-- practice -->
+  <section id="vPlay" class="hide">
+    <div class="bar">
+      <div class="row">
+        <button class="btn sec sm" id="backBtn">← Scripts</button>
+        <h2 id="pTitle" style="font-size:20px;flex:1;min-width:120px"></h2>
+        <div class="seg" role="group" aria-label="Mode"><button data-m="read" aria-pressed="true">Read along</button><button data-m="hide" aria-pressed="false">Hide words</button></div>
+      </div>
+      <div class="row" style="margin-top:8px;justify-content:flex-start;gap:14px;font-size:14px">
+        <label><input type="checkbox" id="sayActs"> Say the actions too</label>
+        <label><input type="checkbox" id="animOn" checked> Animations</label>
+        <select id="sectSel" aria-label="Practise one section" style="padding:5px 10px;font-size:14px;max-width:260px"></select>
+        <span id="langNote" style="color:var(--ink2)"></span>
+      </div>
+      <div class="prog" aria-hidden="true"><i id="progI"></i></div>
+    </div>
+    <div id="lines"></div>
+    <div id="summary" class="hide"></div>
+  </section>
+</div>
+
+<div class="dock hide" id="dock"><div class="in">
+  <button class="mic" id="micBtn" aria-label="Start speaking">🎙</button>
+  <div class="heard" id="heard" aria-live="polite">Tap the mic and say the highlighted line. (It checks your words, not your pronunciation.)</div>
+  <button class="btn sec sm" id="peekBtn" title="Show the next word">Hint</button>
+  <button class="btn sec sm" id="skipBtn">I forgot · show me</button>
+  <button class="btn sec sm" id="typeBtn">Type instead</button>
+  <div class="typebox hide" id="typeBox"><input type="text" id="typeIn" placeholder="Type the line and press Enter" autocomplete="off"><button class="btn sm" id="typeGo">Check</button></div>
+</div></div>
+
+<div id="stageHost"></div>
+
+<script src="scripts.js"></script>
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+const KEY = 'scriptcoach.v1';
+
+/* ---------- storage ---------- */
+const EXAMPLE = {id: 'example', name: 'Example — replace with your own script', lang: 'en-ZA', text:
+`# Before you start
+[Wash hands]
+Hello, my name is Mo and I'm a medical student.
+Can you please confirm your name and date of birth?
+I'd like to examine your knee today. Is that okay with you?
+Are you in any pain at the moment?
+# Look
+[Expose both legs from the thighs down]
+I'm going to look at both knees first while you stand.
+# Finish
+Thank you, you can get dressed now.
+[Wash hands]`};
+const load = () => { try { const d = JSON.parse(localStorage.getItem(KEY)); if (d && d.scripts) { d.scripts = d.scripts.filter(s => s.id !== 'example'); d.prefs = Object.assign({mode: 'read', sayActs: false, anim: true, me: '', group: 'MSK'}, d.prefs); d.best = d.best || {}; return d; } } catch (e) {} return {scripts: [], best: {}, prefs: {mode: 'read', sayActs: false, anim: true, me: '', group: 'MSK'}}; };
+let DB = load();
+const allScripts = () => DB.scripts.concat(BUILTIN);
+const byId = id => allScripts().find(s => s.id === id);
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(DB)); } catch (e) {} };
+const uid = () => Math.random().toString(36).slice(2, 9);
+
+/* ---------- parsing ---------- */
+function parse(text) {
+  const out = []; let sect = '';
+  for (let raw of text.split(/\r?\n/)) {
+    const l = raw.trim(); if (!l) continue;
+    if (l.startsWith('#')) { sect = l.replace(/^#+\s*/, ''); continue; }
+    const [say, mean] = l.split('|').map(s => (s || '').trim());
+    const act = /^\[.*\]$/.test(say) || /^\*\*.*\*\*$/.test(say);
+    const clean = act ? say.replace(/^\[|\]$|^\*\*|\*\*$/g, '').trim() : say;
+    const me = DB.prefs.me || 'your name';
+    const shown = clean.replace(/\{me\}/g, me).replace(/(ngu|name is)\s*____/gi, (m, a) => a + ' ' + (DB.prefs.me || '____')).replace(/\s*____\s*/g, ' (name) ').replace(/\s+([.,?!])/g, '$1').trim();
+    out.push({sect, text: shown, mean: (mean || '').replace(/____/g, '(name)'), act, words: shown.split(/\s+/).filter(Boolean)});
+  }
+  return out;
+}
+
+/* ---------- fuzzy word matching (forgiving: works on letters, not exact words) ---------- */
+const norm = w => w.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
+function lev(a, b) {
+  if (a === b) return 0; if (!a.length) return b.length; if (!b.length) return a.length;
+  let prev = Array.from({length: b.length + 1}, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) { const cur = [i]; for (let j = 1; j <= b.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); prev = cur; }
+  return prev[b.length];
+}
+const sim = (a, b) => { if (!a || !b) return 0; return 1 - lev(a, b) / Math.max(a.length, b.length); };
+const NUM = {'0': 'zero', '1': 'one', '2': 'two', '3': 'three', '4': 'four', '5': 'five', '6': 'six', '7': 'seven', '8': 'eight', '9': 'nine', '10': 'ten'};
+const OPTIONAL = w => /^\(name\)/.test(w) || (DB.prefs.me && norm(w) === norm(DB.prefs.me)) || /^your$|^name$/.test(w) && false;
+function wordMatch(exp, heard) {
+  if (exp.includes('/') && !/^\d/.test(exp)) return exp.split('/').some(x => x && wordMatch(x, heard));
+  const e = norm(exp), h = norm(heard); if (!e || !h) return false;
+  if (e === h || NUM[h] === e || NUM[e] === h) return true;
+  const thr = e.length <= 3 ? 0.99 : e.length <= 5 ? 0.6 : 0.68;
+  if (sim(e, h) >= thr) return true;
+  if (e.length >= 5 && h.length >= 4 && (e.startsWith(h) || h.startsWith(e))) return true;
+  return false;
+}
+/* mark expected words that appear (in order, with some slack) in what was heard */
+function matchLine(line, heardText, got) {
+  const H = heardText.split(/\s+/).map(norm).filter(Boolean);
+  const H2 = H.map((w, i) => w + (H[i + 1] || ''));        // speech engines sometimes split one word in two
+  let p = 0; // pointer into heard words
+  for (let i = 0; i < line.words.length; i++) {
+    if (got[i]) continue;
+    const e = line.words[i];
+    // short words (a, I, is…) are easy to miss; let them ride along with their neighbours
+    for (let k = p; k < Math.min(H.length, p + 6); k++) {
+      if (wordMatch(e, H[k]) || (norm(e).length >= 6 && wordMatch(e, H2[k]))) { got[i] = true; p = k + 1; break; }
+    }
+  }
+  line.words.forEach((w, i) => { if (OPTIONAL(w) && !got[i]) got[i] = 'opt'; });
+  const sig = line.words.map((w, i) => ({i, n: norm(w).length})).filter(x => x.n > 2 && got[x.i] !== 'opt');
+  const big = sig.length ? sig : line.words.map((w, i) => ({i}));
+  const hit = big.filter(x => got[x.i]).length;
+  matchLine.rest = heardText.split(/\s+/).filter(Boolean).slice(p).join(' ');
+  return big.length ? hit / big.length : 1;
+}
+
+/* ---------- animations (cartoon SVG, same style as Ward Round) ---------- */
+const ANIMS = [
+  {re: /wash|hygien|sanitis|sanitiz|alcohol rub|hand rub/i, name: 'hands', ico: '🧼'},
+  {re: /glove/i, name: 'gloves', ico: '🧤'},
+  {re: /needle|syringe|inject|venepunct|venipunct|draw blood|cannul|lignocaine|lidocaine|aspirat/i, name: 'needle', ico: '💉'},
+  {re: /tourniquet/i, name: 'tourniquet', ico: '🩹'},
+  {re: /swab|clean the (skin|site)|disinfect|chlorhex/i, name: 'swab', ico: '🧴'},
+  {re: /stethoscope|auscultat|listen/i, name: 'steth', ico: '🩺'},
+  {re: /hammer|reflex/i, name: 'hammer', ico: '🔨'},
+  {re: /expose|undress|gown|position|lie (down|flat)|sit up|stand/i, name: 'expose', ico: '🛏'},
+  {re: /measure|tape|goniomet/i, name: 'measure', ico: '📏'},
+];
+const animFor = t => ANIMS.find(a => a.re.test(t)) || {name: 'check', ico: '✔'};
+const SVGS = {
+  hands: `<svg viewBox="0 0 200 150" width="190"><style>.h1{animation:rub .4s ease-in-out infinite alternate}.h2{animation:rub2 .4s ease-in-out infinite alternate}@keyframes rub{to{transform:translate(12px,-3px)}}@keyframes rub2{to{transform:translate(-12px,3px)}}.b{animation:up 1.4s ease-out infinite;opacity:0}@keyframes up{0%{opacity:0;transform:translateY(0) scale(.5)}30%{opacity:1}100%{opacity:0;transform:translateY(-50px) scale(1.2)}}.wt{animation:fall .8s linear infinite}@keyframes fall{from{transform:translateY(-10px);opacity:1}to{transform:translateY(40px);opacity:0}}</style>
+  <path d="M96 0 v18 h14" fill="none" stroke="#8a97a8" stroke-width="8" stroke-linecap="round"/><g class="wt"><circle cx="110" cy="30" r="3" fill="#7fc8f8"/><circle cx="106" cy="44" r="2.5" fill="#7fc8f8"/></g>
+  <g class="b"><circle cx="66" cy="66" r="7" fill="#fff" stroke="#9ad7f0" stroke-width="3"/></g><g class="b" style="animation-delay:.45s"><circle cx="132" cy="62" r="6" fill="#fff" stroke="#9ad7f0" stroke-width="3"/></g><g class="b" style="animation-delay:.9s"><circle cx="98" cy="58" r="9" fill="#fff" stroke="#9ad7f0" stroke-width="3"/></g>
+  <g class="h1"><rect x="28" y="80" width="92" height="40" rx="20" fill="#c98b5e" stroke="#1e2a3a" stroke-width="4"/><ellipse cx="100" cy="78" rx="9" ry="15" transform="rotate(35 100 78)" fill="#c98b5e" stroke="#1e2a3a" stroke-width="4"/><path d="M8 100 h22" stroke="#127c76" stroke-width="16" stroke-linecap="round"/></g>
+  <g class="h2"><rect x="80" y="94" width="92" height="40" rx="20" fill="#a86b45" stroke="#1e2a3a" stroke-width="4"/><ellipse cx="100" cy="134" rx="9" ry="15" transform="rotate(35 100 134)" fill="#a86b45" stroke="#1e2a3a" stroke-width="4"/><path d="M170 114 h22" stroke="#127c76" stroke-width="16" stroke-linecap="round"/></g>
+  <g class="b" style="animation-delay:.2s"><circle cx="112" cy="96" r="5" fill="#fff" stroke="#9ad7f0" stroke-width="2"/></g><g class="b" style="animation-delay:.7s"><circle cx="84" cy="100" r="4" fill="#fff" stroke="#9ad7f0" stroke-width="2"/></g></svg>`,
+  gloves: `<svg viewBox="0 0 200 150" width="170"><style>.g{animation:pull 1.4s ease-in-out infinite}@keyframes pull{0%{transform:translateY(-40px)}60%,100%{transform:translateY(0)}}</style><path d="M78 140 V70 a8 8 0 0 1 16 0 V60 a8 8 0 0 1 16 0 V64 a8 8 0 0 1 16 0 V78 a8 8 0 0 1 14 0 V110 c0 18-12 30-30 30z" fill="#c98b5e" stroke="#1e2a3a" stroke-width="4"/><g class="g"><path d="M72 146 V72 a9 9 0 0 1 18 0 V60 a9 9 0 0 1 18 0 V64 a9 9 0 0 1 18 0 V78 a9 9 0 0 1 16 0 V112 c0 20-14 34-34 34z" fill="#7fc8f8" fill-opacity=".85" stroke="#1e2a3a" stroke-width="4"/></g></svg>`,
+  needle: `<svg viewBox="0 0 200 150" width="190"><style>.pl{animation:push 1.6s ease-in-out infinite}@keyframes push{0%,20%{transform:translateX(0)}70%,100%{transform:translateX(34px)}}.dr{animation:drip 1.6s infinite}@keyframes drip{0%,60%{opacity:0}70%{opacity:1}100%{opacity:0;transform:translateY(8px)}}</style><rect x="40" y="62" width="96" height="26" rx="5" fill="#fff" stroke="#1e2a3a" stroke-width="4"/><rect x="82" y="66" width="50" height="18" fill="#ff8f80" opacity=".7"/><g class="pl"><rect x="10" y="70" width="38" height="10" fill="#cfd8d6" stroke="#1e2a3a" stroke-width="4"/><rect x="4" y="60" width="8" height="30" rx="3" fill="#127c76" stroke="#1e2a3a" stroke-width="3"/><rect x="44" y="64" width="8" height="22" fill="#1e2a3a"/></g><rect x="136" y="70" width="12" height="10" fill="#cfd8d6" stroke="#1e2a3a" stroke-width="3"/><path d="M148 75 H192" stroke="#1e2a3a" stroke-width="3"/><circle class="dr" cx="192" cy="80" r="3" fill="#ff8f80"/><path d="M60 62v-6M76 62v-6M92 62v-6M108 62v-6M124 62v-6" stroke="#1e2a3a" stroke-width="2"/></svg>`,
+  tourniquet: `<svg viewBox="0 0 200 150" width="190"><style>.t{animation:tie 1.4s ease-in-out infinite alternate}@keyframes tie{from{transform:scaleY(1.25)}to{transform:scaleY(.9)}}</style><path d="M0 60 H200 V100 H0z" fill="#c98b5e" stroke="#1e2a3a" stroke-width="4"/><g class="t" style="transform-origin:100px 80px"><rect x="88" y="52" width="24" height="56" rx="6" fill="#4b8bd6" stroke="#1e2a3a" stroke-width="4"/></g><path d="M112 70 l30 -24 M112 90 l34 22" stroke="#4b8bd6" stroke-width="8" stroke-linecap="round"/><path d="M130 82 h60" stroke="#7a3e2a" stroke-width="5" stroke-linecap="round" opacity=".6"/></svg>`,
+  swab: `<svg viewBox="0 0 200 150" width="190"><style>.s{animation:wipe 1s ease-in-out infinite alternate}@keyframes wipe{from{transform:translate(-30px,6px) rotate(-8deg)}to{transform:translate(30px,-6px) rotate(8deg)}}</style><path d="M0 85 H200 V130 H0z" fill="#c98b5e" stroke="#1e2a3a" stroke-width="4"/><ellipse cx="100" cy="92" rx="46" ry="6" fill="#fff" opacity=".6"/><g class="s" style="transform-origin:100px 80px"><rect x="78" y="56" width="44" height="30" rx="6" fill="#fff" stroke="#1e2a3a" stroke-width="4"/><path d="M84 66h32M84 74h24" stroke="#9ad7f0" stroke-width="3"/></g></svg>`,
+  steth: `<svg viewBox="0 0 200 150" width="180"><style>.w{animation:beat 1s ease-in-out infinite}@keyframes beat{0%,100%{transform:scale(1)}15%{transform:scale(1.18)}30%{transform:scale(1)}45%{transform:scale(1.12)}}</style><path d="M50 20 v30 c0 26 50 26 50 0 V20" fill="none" stroke="#1e2a3a" stroke-width="6" stroke-linecap="round"/><path d="M75 74 V100 c0 20 40 20 40 0" fill="none" stroke="#1e2a3a" stroke-width="6"/><circle cx="125" cy="98" r="16" fill="#cfd8d6" stroke="#1e2a3a" stroke-width="5"/><g class="w" style="transform-origin:165px 60px"><path d="M165 76 c-22-14-22-32-10-32 c5 0 8 4 10 8 c2-4 5-8 10-8 c12 0 12 18-10 32z" fill="#ff6b5b" stroke="#1e2a3a" stroke-width="3"/></g></svg>`,
+  hammer: `<svg viewBox="0 0 200 150" width="180"><style>.hm{animation:tap .9s ease-in infinite}@keyframes tap{0%,100%{transform:rotate(-30deg)}40%{transform:rotate(8deg)}}.lg{animation:kick .9s infinite;transform-origin:120px 70px}@keyframes kick{0%,40%{transform:rotate(0)}55%{transform:rotate(-14deg)}80%{transform:rotate(0)}}</style><path d="M60 70 H125" stroke="#1e2a3a" stroke-width="22" stroke-linecap="round"/><path d="M60 70 H125" stroke="#4b8bd6" stroke-width="14" stroke-linecap="round"/><g class="lg"><path d="M122 70 V135" stroke="#c98b5e" stroke-width="18" stroke-linecap="round"/></g><g class="hm" style="transform-origin:170px 20px"><path d="M170 20 L140 78" stroke="#1e2a3a" stroke-width="5"/><path d="M128 72 l22 10" stroke="#ff6b5b" stroke-width="14" stroke-linecap="round"/></g></svg>`,
+  expose: `<svg viewBox="0 0 200 150" width="190"><style>.c{animation:slide 1.6s ease-in-out infinite}@keyframes slide{0%,20%{transform:translateX(0)}70%,100%{transform:translateX(-60px)}}</style><rect x="20" y="90" width="160" height="20" rx="6" fill="#fff" stroke="#1e2a3a" stroke-width="4"/><circle cx="50" cy="78" r="13" fill="#c98b5e" stroke="#1e2a3a" stroke-width="4"/><rect x="62" y="70" width="100" height="20" rx="8" fill="#bfe3d5" stroke="#1e2a3a" stroke-width="4"/><g class="c"><rect x="110" y="20" width="70" height="70" rx="6" fill="#ff8f80" fill-opacity=".85" stroke="#1e2a3a" stroke-width="4"/><path d="M122 20v70M134 20v70M146 20v70M158 20v70" stroke="#1e2a3a" stroke-width="2" opacity=".35"/></g></svg>`,
+  measure: `<svg viewBox="0 0 200 150" width="190"><style>.m{animation:ext 1.4s ease-in-out infinite alternate}@keyframes ext{from{transform:scaleX(.2)}to{transform:scaleX(1)}}</style><rect x="14" y="56" width="40" height="40" rx="10" fill="#ffc845" stroke="#1e2a3a" stroke-width="4"/><g class="m" style="transform-origin:54px 76px"><rect x="54" y="68" width="130" height="16" fill="#fff6c9" stroke="#1e2a3a" stroke-width="3"/><path d="M64 68v8M74 68v5M84 68v8M94 68v5M104 68v8M114 68v5M124 68v8M134 68v5M144 68v8M154 68v5M164 68v8M174 68v5" stroke="#1e2a3a" stroke-width="2"/></g></svg>`,
+  check: `<svg viewBox="0 0 200 150" width="150"><style>.k{stroke-dasharray:120;stroke-dashoffset:120;animation:d .6s .1s forwards}@keyframes d{to{stroke-dashoffset:0}}</style><circle cx="100" cy="72" r="52" fill="#e3f6ec" stroke="#2fa36b" stroke-width="6"/><path class="k" d="M74 74 l18 18 l36 -40" fill="none" stroke="#2fa36b" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+};
+function playAnim(text) {
+  if (!DB.prefs.anim) return;
+  const a = animFor(text), host = $('#stageHost');
+  host.innerHTML = `<div class="stage" role="img" aria-label="${esc(text)}">${SVGS[a.name]}<div class="cap">${esc(text)}</div></div>`;
+  clearTimeout(playAnim.t); playAnim.t = setTimeout(() => host.innerHTML = '', 1900);
+}
+
+/* ---------- views ---------- */
+let RUN = null, editing = null;
+function view(v) { ['vLib', 'vEdit', 'vPlay'].forEach(id => $('#' + id).classList.toggle('hide', id !== v)); $('#dock').classList.toggle('hide', v !== 'vPlay'); if (v !== 'vPlay') stopMic(); window.scrollTo(0, 0); }
+const LANGN = {'zu-ZA': 'isiZulu', 'en-ZA': 'English', 'xh-ZA': 'isiXhosa', 'st-ZA': 'Sesotho', 'af-ZA': 'Afrikaans'};
+const GROUPS = ['My scripts', 'MSK', 'isiZulu', 'History', 'BCMH', 'CVS', 'Resp', 'Renal', 'GIT'];
+function drawLib() {
+  $('#meName').value = DB.prefs.me || '';
+  const g = DB.prefs.group, q = ($('#q').value || '').toLowerCase();
+  $('#groups').innerHTML = GROUPS.filter(x => x !== 'My scripts' || DB.scripts.length).map(x => `<button data-g="${x}" aria-pressed="${x === g && !q}">${x}</button>`).join('');
+  const L = q ? allScripts().filter(s => s.name.toLowerCase().includes(q) || s.text.toLowerCase().includes(q)) : g === 'My scripts' ? DB.scripts : BUILTIN.filter(s => s.group === g);
+  $('#lib').innerHTML = L.length ? L.map(s => { const P = parse(s.text), n = P.filter(l => !l.act).length, a = P.length - n;
+    const best = DB.best[s.id] != null ? ` · best ${DB.best[s.id]}%` : '';
+    return `<div class="card item"><div class="grow"><h3>${esc(s.name)}</h3><div class="meta"><span class="tag">${LANGN[s.lang] || s.lang}</span>${n} lines to say · ${a} actions${best}</div></div>
+    <button class="btn" data-play="${s.id}">Practise</button><button class="btn sec sm" data-edit="${s.id}">${s.builtin ? 'Copy &amp; edit' : 'Edit'}</button></div>`; }).join('')
+    : `<div class="card empty">${q ? 'Nothing matches that search.' : 'No scripts here yet. Tap <b>+ New script</b> and paste one in.'}</div>`;
+}
+$('#groups').onclick = e => { const b = e.target.closest('[data-g]'); if (!b) return; DB.prefs.group = b.dataset.g; $('#q').value = ''; save(); drawLib(); };
+$('#q').oninput = () => drawLib();
+$('#meName').onchange = () => { DB.prefs.me = $('#meName').value.trim(); save(); };
+$('#lib').onclick = e => { const p = e.target.closest('[data-play]'), d = e.target.closest('[data-edit]'); if (p) startRun(p.dataset.play); if (d) openEdit(d.dataset.edit); };
+function openEdit(id) {
+  editing = id ? byId(id) : null;
+  if (editing && editing.builtin) editing = {copyOf: editing, name: editing.name + ' (my version)', lang: editing.lang, text: editing.text};
+  $('#edTitle').textContent = editing ? 'Edit script' : 'New script';
+  $('#edName').value = editing ? editing.name : '';
+  $('#edLang').value = editing ? editing.lang : 'zu-ZA';
+  $('#edText').value = editing ? editing.text : '';
+  $('#edText').placeholder = '# Introduction\n[Wash hands]\nYour first line here | what it means\nYour second line…';
+  $('#edDel').classList.toggle('hide', !editing || !!editing.copyOf);
+  view('vEdit');
+}
+$('#newBtn').onclick = () => openEdit(null);
+$('#edCancel').onclick = () => { drawLib(); view('vLib'); };
+$('#edSave').onclick = () => {
+  const name = $('#edName').value.trim() || 'Untitled script', text = $('#edText').value, lang = $('#edLang').value;
+  if (!parse(text).length) { $('#edText').focus(); return; }
+  if (editing && !editing.copyOf) Object.assign(editing, {name, text, lang}); else DB.scripts.unshift({id: uid(), name, text, lang, group: 'My scripts'});
+  if (!editing || editing.copyOf) DB.prefs.group = 'My scripts';
+  save(); drawLib(); view('vLib');
+};
+$('#edDel').onclick = () => { if (!editing) return; DB.scripts = DB.scripts.filter(s => s !== editing); save(); drawLib(); view('vLib'); };
+$('#fileIn').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  const text = await f.text();
+  DB.prefs.group = 'My scripts';
+  DB.scripts.unshift({id: uid(), group: 'My scripts', name: f.name.replace(/\.txt$/i, ''), lang: /[a-z]/i.test(text) && /ngi|uku|ubu|sawubona|yini/i.test(text) ? 'zu-ZA' : 'en-ZA', text});
+  save(); drawLib(); e.target.value = '';
+};
+
+/* ---------- practice ---------- */
+function startRun(id, onlyIdx, sect) {
+  const s = byId(id); if (!s) return;
+  const all = parse(s.text);
+  if (!onlyIdx && sect) onlyIdx = all.map((l, i) => l.sect === sect ? i : -1).filter(i => i >= 0);
+  let lines = all;
+  if (onlyIdx) lines = all.filter((_, i) => onlyIdx.includes(i));
+  const sects = [...new Set(all.map(l => l.sect).filter(Boolean))];
+  $('#sectSel').innerHTML = `<option value="">Whole script (${all.length} lines)</option>` + sects.map(x => `<option ${x === sect ? 'selected' : ''}>${esc(x)}</option>`).join('');
+  $('#sectSel').classList.toggle('hide', sects.length < 2);
+  RUN = {s, lines, origIdx: onlyIdx || lines.map((_, i) => i), cur: 0, got: lines.map(l => l.words.map(w => OPTIONAL(w) ? 'opt' : false)), state: lines.map(() => ''), peek: lines.map(() => 0), t0: Date.now(), heard: ''};
+  $('#pTitle').textContent = s.name;
+  $('#langNote').textContent = `Listening in ${LANGN[s.lang] || s.lang}`;
+  $('#summary').classList.add('hide'); $('#lines').classList.remove('hide');
+  setMode(DB.prefs.mode); $('#sayActs').checked = DB.prefs.sayActs; $('#animOn').checked = DB.prefs.anim;
+  view('vPlay'); drawLines(); settleActions();
+}
+function setMode(m) { DB.prefs.mode = m; save(); document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.m === m)); $('#lines').classList.toggle('hidemode', m === 'hide'); }
+document.querySelectorAll('.seg button').forEach(b => b.onclick = () => setMode(b.dataset.m));
+$('#sayActs').onchange = e => { DB.prefs.sayActs = e.target.checked; save(); settleActions(); };
+$('#animOn').onchange = e => { DB.prefs.anim = e.target.checked; save(); };
+$('#sectSel').onchange = e => startRun(RUN.s.id, null, e.target.value || null);
+$('#backBtn').onclick = () => { drawLib(); view('vLib'); };
+
+function lineHTML(l, i) {
+  const st = RUN.state[i], cls = ['line', l.act ? 'act' : '', i === RUN.cur && !st ? 'cur' : '', st, i > RUN.cur && !st ? 'future' : ''].join(' ');
+  const words = l.words.map((w, k) => `<span class="w${RUN.got[i][k] ? ' got' : ''}${RUN.got[i][k] === 'opt' ? ' opt' : ''}${k < RUN.peek[i] ? ' peek' : ''}">${esc(w)}</span>`).join('');
+  const ico = l.act ? `<span class="ico" aria-hidden="true">${animFor(l.text).ico}</span>` : '';
+  return `<div class="${cls}" data-i="${i}">${l.act ? `<div class="words">${ico}${esc(l.text)}</div>` : `<div class="words">${words}</div>`}${l.mean ? `<div class="mean">${esc(l.mean)}</div>` : ''}</div>`;
+}
+function drawLines() {
+  let html = '', sect = null;
+  RUN.lines.forEach((l, i) => { if (l.sect !== sect) { sect = l.sect; if (sect) html += `<div class="sect">${esc(sect)}</div>`; } html += lineHTML(l, i); });
+  $('#lines').innerHTML = html;
+  const done = RUN.state.filter(Boolean).length; $('#progI').style.width = (100 * done / RUN.lines.length) + '%';
+  const c = $('#lines .cur'); if (c) c.scrollIntoView({behavior: 'smooth', block: 'center'});
+}
+/* actions are ticked for you (unless you choose to say them) */
+function settleActions() {
+  if (!RUN) return;
+  let moved = false;
+  while (RUN.cur < RUN.lines.length && RUN.lines[RUN.cur].act && !DB.prefs.sayActs) {
+    RUN.got[RUN.cur] = RUN.got[RUN.cur].map(() => true); RUN.state[RUN.cur] = 'done'; playAnim(RUN.lines[RUN.cur].text); RUN.cur++; moved = true;
+  }
+  if (RUN.cur >= RUN.lines.length) return finish();
+  drawLines();
+}
+function completeLine(missed, rest) {
+  const i = RUN.cur, l = RUN.lines[i];
+  RUN.state[i] = missed ? 'missed' : 'done';
+  if (l.act && !missed) playAnim(l.text);
+  RUN.cur++; RUN.heard = ''; resetHeard();
+  $('#heard').innerHTML = missed ? 'Shown in red — say it next time. Carry on with the next line.' : '<b>Nice.</b> Next line…';
+  settleActions();
+  // you said two lines in one breath: the rest counts towards the next line
+  if (rest && rest.split(' ').length >= 1 && RUN.cur < RUN.lines.length) { finalText = rest; hear(rest, true); }
+}
+function hear(text, isFinal) {
+  if (!RUN || RUN.cur >= RUN.lines.length) return;
+  const l = RUN.lines[RUN.cur];
+  $('#heard').innerHTML = `Heard: <b>${esc(text)}</b>`;
+  const ratio = matchLine(l, text, RUN.got[RUN.cur]);
+  // fill words live as you speak
+  const el = document.querySelector(`.line[data-i="${RUN.cur}"]`);
+  if (el) el.querySelectorAll('.w').forEach((w, k) => w.classList.toggle('got', RUN.got[RUN.cur][k]));
+  if (ratio >= 0.8 || (isFinal && ratio >= 0.7)) completeLine(false, matchLine.rest);
+}
+$('#skipBtn').onclick = () => { if (!RUN || RUN.cur >= RUN.lines.length) return; completeLine(true); };
+$('#peekBtn').onclick = () => { if (!RUN || RUN.cur >= RUN.lines.length) return; const i = RUN.cur; const next = RUN.got[i].findIndex((g, k) => !g && k >= RUN.peek[i]); RUN.peek[i] = next < 0 ? RUN.peek[i] : next + 1; RUN.hints = (RUN.hints || 0) + 1; drawLines(); };
+$('#typeBtn').onclick = () => { $('#typeBox').classList.toggle('hide'); if (!$('#typeBox').classList.contains('hide')) $('#typeIn').focus(); };
+const typeCheck = () => { const v = $('#typeIn').value.trim(); if (!v) return; hear(v, true); $('#typeIn').value = ''; };
+$('#typeGo').onclick = typeCheck; $('#typeIn').onkeydown = e => { if (e.key === 'Enter') typeCheck(); };
+
+function finish() {
+  stopMic();
+  const said = RUN.lines.filter(l => !l.act), sIdx = RUN.lines.map((l, i) => i).filter(i => !RUN.lines[i].act);
+  const words = sIdx.reduce((t, i) => t + RUN.lines[i].words.length, 0), got = sIdx.reduce((t, i) => t + RUN.got[i].filter(Boolean).length, 0);
+  const pct = words ? Math.round(100 * got / words) : 100;
+  const missed = RUN.lines.map((l, i) => ({l, i})).filter(x => RUN.state[x.i] === 'missed');
+  const secs = Math.round((Date.now() - RUN.t0) / 1000);
+  if (RUN.origIdx.length === parse(RUN.s.text).length) { DB.best[RUN.s.id] = Math.max(DB.best[RUN.s.id] || 0, pct); save(); }
+  $('#lines').classList.add('hide'); $('#progI').style.width = '100%';
+  $('#summary').classList.remove('hide');
+  $('#summary').innerHTML = `<div class="card" style="text-align:center"><div class="big">${pct}%</div><div>of the words said · ${said.length - missed.filter(m => !m.l.act).length}/${said.length} lines without help · ${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}${RUN.hints ? ` · ${RUN.hints} hint${RUN.hints > 1 ? 's' : ''}` : ''}</div></div>
+  ${missed.length ? `<div class="card"><h3 style="margin-bottom:8px">Lines to work on</h3><ul class="mlist">${missed.map(m => `<li>${m.l.act ? '<b>' + esc(m.l.text) + '</b>' : esc(m.l.text)}</li>`).join('')}</ul></div>` : '<div class="card" style="text-align:center"><b>Every line, no help. That script is yours.</b></div>'}
+  <div class="row" style="justify-content:center">${missed.length ? '<button class="btn warn" id="redoMissed">Practise just these</button>' : ''}<button class="btn" id="again">Go again</button><button class="btn sec" id="toHide">${DB.prefs.mode === 'hide' ? 'Back to read along' : 'Try it with words hidden'}</button></div>`;
+  const sect = $('#sectSel').value || null;
+  $('#again').onclick = () => startRun(RUN.s.id, null, sect);
+  $('#toHide').onclick = () => { setMode(DB.prefs.mode === 'hide' ? 'read' : 'hide'); startRun(RUN.s.id, null, sect); };
+  const rm = $('#redoMissed'); if (rm) rm.onclick = () => startRun(RUN.s.id, missed.map(m => RUN.origIdx[m.i]));
+}
+
+/* ---------- speech recognition (free, built into Chrome / Edge / Android) ---------- */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null, listening = false, finalText = '';
+function resetHeard() { finalText = ''; }
+function startMic() {
+  if (!SR) { $('#heard').innerHTML = 'This browser can\'t listen. Use <b>Chrome</b> (Android, Windows or Mac), or tap <b>Type instead</b>.'; $('#typeBox').classList.remove('hide'); return; }
+  rec = new SR(); rec.lang = RUN.s.lang; rec.continuous = true; rec.interimResults = true; rec.maxAlternatives = 3;
+  rec.onresult = e => {
+    let interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const r = e.results[i];
+      // use every alternative the engine offers: it gives the fuzzy matcher more chances
+      const alts = Array.from(r).map(a => a.transcript).join(' ');
+      if (r.isFinal) finalText += ' ' + alts; else interim += ' ' + alts;
+    }
+    hear((finalText + ' ' + interim).trim(), !interim);
+  };
+  rec.onerror = e => { if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { listening = false; micUI(); $('#heard').innerHTML = 'Microphone blocked. Allow the mic for this site (padlock in the address bar), or tap <b>Type instead</b>.'; } else if (e.error === 'language-not-supported') { listening = false; micUI(); $('#heard').innerHTML = `This browser can't listen in ${LANGN[RUN.s.lang]}. Use Chrome, or tap <b>Type instead</b>.`; } };
+  rec.onend = () => { if (listening) { try { rec.start(); } catch (e) {} } };
+  try { rec.start(); listening = true; } catch (e) {}
+  micUI();
+}
+function stopMic() { listening = false; if (rec) { try { rec.stop(); } catch (e) {} } micUI(); }
+function micUI() { const b = $('#micBtn'); b.classList.toggle('on', listening); b.textContent = listening ? '■' : '🎙'; b.setAttribute('aria-label', listening ? 'Stop listening' : 'Start speaking'); if (listening) $('#heard').innerHTML = 'Listening… say the highlighted line.'; }
+$('#micBtn').onclick = () => listening ? stopMic() : startMic();
+
+drawLib();
+</script>
+</body>
+</html>
