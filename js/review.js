@@ -96,12 +96,15 @@ const Review = (() => {
       const next = () => {
         if (i >= qs.length) return finish();
         const q = qs[i++], el = document.createElement('div');
+        // same options, new order every time; letters follow the new order
+        const order = q.options ? Object.entries(q.options).map(e => [e, Math.random()]).sort((a, b) => a[1] - b[1]).map(x => x[0]) : [];
+        const shown = k => 'ABCD'[order.findIndex(([x]) => x === k)];
         el.className = 'rv-q';
         const lab = q.type === 'data' ? 'Data interpretation' : q.type === 'vsa' ? 'Very short answer (1 to 3 words)' : q.tag || 'Single best answer';
         el.innerHTML = `<div class="tag">Q${q.n} · ${h(lab)}</div>${tableHTML(q)}<p class="rv-stem">${h(q.stem)}</p>` +
           (q.type === 'vsa'
             ? `<form class="rv-vsa"><input type="text" autocomplete="off" spellcheck="false" placeholder="Your answer" aria-label="Your answer to Q${q.n}"><button class="btn">Check</button></form>`
-            : `<div class="rv-opts" role="group">${Object.entries(q.options).map(([k, v]) => `<button type="button" class="rv-opt" data-k="${k}"><span class="rv-k">${k}</span><span>${h(v)}</span></button>`).join('')}</div>`) +
+            : `<div class="rv-opts" role="group">${order.map(([k, v], i) => `<button type="button" class="rv-opt" data-k="${k}"><span class="rv-k">${'ABCD'[i]}</span><span>${h(v)}</span></button>`).join('')}</div>`) +
           `<div class="rv-out"></div>`;
         qhost.appendChild(el);
         const out = el.querySelector('.rv-out');
@@ -121,7 +124,7 @@ const Review = (() => {
           el.querySelectorAll('.rv-opt').forEach(b => b.onclick = () => {
             const ok = b.dataset.k === q.key;
             el.querySelectorAll('.rv-opt').forEach(x => { x.disabled = true; if (x.dataset.k === q.key) x.classList.add('right'); else if (x === b) x.classList.add('wrong'); });
-            out.innerHTML = `<div class="verdict ${ok ? 'correct' : 'incorrect'}"><h4>${ok ? 'Correct' : `Answer: ${q.key}`}</h4>${h(q.why)}</div>`;
+            out.innerHTML = `<div class="verdict ${ok ? 'correct' : 'incorrect'}"><h4>${ok ? 'Correct' : `Answer: ${shown(q.key)}`}</h4>${h(q.why)}</div>`;
             mark(q, ok); next(); scrollTo(el);
           });
         }
