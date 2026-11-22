@@ -154,10 +154,17 @@ const Review = (() => {
       ${papers.map(n => `<details class="rv-paper"${n === 1 ? ' open' : ''}><summary class="f">Practice paper ${n}</summary><div class="rv-list">${EYE1.filter(c => c.paper === n).map(c => `<button type="button" class="rv-cl" data-id="${c.id}"><span class="rv-n">${c.n}</span><span>${h(c.title)}<small>${c.block} · ${c.qs.length} questions</small></span>${done[c.id] !== undefined ? `<b class="rv-done">${done[c.id]}%</b>` : ''}</button>`).join('')}</div></details>`).join('')}
       <div class="row"><button class="btn sec" type="button" id="rvRand">Random cluster</button><button class="btn" data-back type="button">Back</button></div>`;
     const open = c => {
-      host.innerHTML = `<div class="row" style="margin:0 0 10px"><button class="btn sec" type="button" id="rvBack">‹ All clusters</button></div><div class="rv-host"></div>`;
-      host.querySelector('#rvBack').onclick = () => { menu(host); bindBack(host); };
-      host.closest('.screen').scrollTop = 0;
-      run(host.querySelector('.rv-host'), c, c.qs, {noFocus: true});
+      host.innerHTML = `<div class="row rv-top"><button class="btn sec" type="button" data-all>‹ All clusters</button></div><div class="rv-host"></div>`;
+      const toList = () => { menu(host); bindBack(host); host.scrollTop = 0; host.closest('.screen').scrollTop = 0; };
+      host.querySelector('[data-all]').onclick = toList;
+      host.scrollTop = 0; host.closest('.screen').scrollTop = 0;
+      run(host.querySelector('.rv-host'), c, c.qs, {noFocus: true}).then(() => {
+        const nx = EYE1[(EYE1.indexOf(c) + 1) % EYE1.length];
+        host.insertAdjacentHTML('beforeend', `<div class="row rv-end"><button class="btn sec" type="button" data-all>‹ All clusters</button><button class="btn" type="button" data-next>Next: ${h(nx.title)}</button></div>`);
+        host.querySelector('.rv-end [data-all]').onclick = toList;
+        host.querySelector('[data-next]').onclick = () => open(nx);
+        setTimeout(() => host.querySelector('.rv-end').scrollIntoView({behavior: 'smooth', block: 'nearest'}), 100);
+      });
     };
     host.querySelectorAll('.rv-cl').forEach(b => b.onclick = () => open(EYE1.find(c => c.id === b.dataset.id)));
     host.querySelector('#rvRand').onclick = () => open(pick(EYE1));
