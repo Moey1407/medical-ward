@@ -31,7 +31,7 @@ function awardXP(sc) {
 }
 
 /* ---------- screens ---------- */
-function show(id) { ['menu', 'how', 'ach', 'charsel', 'start'].forEach(s => $('#' + s).classList.toggle('hide', s !== id)); }
+function show(id) { ['menu', 'how', 'ach', 'papers', 'charsel', 'start'].forEach(s => $('#' + s).classList.toggle('hide', s !== id)); }
 document.addEventListener('DOMContentLoaded', () => {
   World.init($('#world'));
   const pr = PROG.get();
@@ -46,7 +46,10 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#mBegin').onclick = () => { show('charsel'); World.setMode('select'); drawSel(); };
   $('#mHow').onclick = () => show('how');
   $('#mAch').onclick = () => { const a = PROG.get().ach; $('#achList').innerHTML = Object.entries(ACH).map(([k, v]) => `<div class="find" style="grid-template-columns:40px 1fr;opacity:${a[k] ? 1 : .45}"><span style="font-size:24px">${a[k] ? '🏆' : '🔒'}</span><div>${esc(v)}</div></div>`).join(''); show('ach'); };
-  document.querySelectorAll('[data-back]').forEach(b => b.onclick = () => { show('menu'); World.setMode('menu'); });
+  const bindBack = (root = document) => root.querySelectorAll('[data-back]').forEach(b => b.onclick = () => { show('menu'); World.setMode('menu'); });
+  bindBack();
+  $('#mPapers').onclick = () => { Review.menu($('#papersBox')); bindBack($('#papersBox')); show('papers'); $('#papers').scrollTop = 0; };
+  Review.setBack(bindBack);
   // character select
   let idx = DOC.preset || 0;
   const drawSel = () => { const ps = World.PRESETS[idx]; $('#csName').textContent = ps.name; const mine = idx === DOC.preset && DOC.name && DOC.name !== ps.name; $('#csInput').value = mine ? DOC.name : ''; $('#csInput').placeholder = 'Type your name'; World.setDoctor(Object.assign({}, ps)); World.setMode('select'); };

@@ -438,6 +438,43 @@ html.mobile .invgroups{grid-template-columns:1fr}
 html.mobile .refimg{grid-template-columns:1fr 1fr}
 html.mobile .lancet{font-size:11.5px;overflow-x:auto}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* EYE1 practice-paper review */
+.rv-screen{max-width:760px;width:100%;max-height:calc(100vh - 48px);overflow:auto}
+#papers{align-items:flex-start}
+.rv-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:8px}
+.rv-score{font:700 22px var(--fd);color:var(--teal2);background:var(--mint2);border-radius:12px;padding:4px 12px;white-space:nowrap}
+.rv-scen{background:var(--mint2);border-radius:14px;padding:12px 14px;margin-bottom:6px}
+.rv-scen p{margin:4px 0 0}
+.rv-q{border-top:2px dashed var(--line);padding-top:12px;margin-top:14px}
+.rv-stem{font-weight:700;margin:6px 0 10px}
+.rv-opts{display:grid;gap:8px}
+.rv-opt{display:grid;grid-template-columns:34px 1fr;gap:10px;align-items:start;text-align:left;background:#fff;border:2px solid var(--line);border-radius:14px;padding:10px 12px;line-height:1.4;transition:border-color .15s,background .15s}
+.rv-opt:hover:not(:disabled){border-color:var(--teal)}
+.rv-opt:disabled{cursor:default}
+.rv-opt:disabled:not(.right):not(.wrong){opacity:.55}
+.rv-k{font:700 16px var(--fd);width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--mint2);color:var(--teal2)}
+.rv-opt.right{border-color:var(--ok);background:var(--okbg)}.rv-opt.right .rv-k{background:var(--ok);color:#fff}
+.rv-opt.wrong{border-color:var(--bad);background:var(--badbg)}.rv-opt.wrong .rv-k{background:var(--bad);color:#fff}
+.rv-vsa{display:flex;gap:8px;flex-wrap:wrap}
+.rv-vsa input{flex:1;min-width:180px;font:17px Nunito,system-ui,sans-serif;color:var(--ink);padding:10px 12px;border-radius:12px;border:2px solid var(--line)}
+.rv-own{margin-top:8px;font-size:15px}.rv-own .btn{margin-left:6px;padding:4px 12px;font-size:14px}
+.rv-tablewrap{overflow-x:auto;margin:6px 0}
+.rv-table{border-collapse:collapse;width:100%;font-size:15px;background:#fff;border-radius:10px;overflow:hidden}
+.rv-table th,.rv-table td{border:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top}
+.rv-table th{background:var(--mint2);font-family:var(--fd);font-weight:600}
+.rv-report{background:#fff;border-left:5px solid var(--teal);border-radius:10px;padding:10px 12px;font-style:italic;margin:6px 0}
+.rv-more{margin-top:10px;display:block}
+.rv-paper{margin:8px 0;border:2px solid var(--line);border-radius:14px;padding:6px 12px;background:#fff}
+.rv-paper summary{cursor:pointer;font-size:18px;padding:4px 0}
+.rv-list{display:grid;gap:6px;padding:6px 0 8px}
+.rv-cl{display:grid;grid-template-columns:32px 1fr auto;gap:10px;align-items:center;text-align:left;background:var(--paper);border:2px solid var(--line);border-radius:12px;padding:8px 10px;line-height:1.3}
+.rv-cl:hover{border-color:var(--teal)}
+.rv-cl small{display:block;color:var(--ink2);font-size:13px}
+.rv-n{font:700 15px var(--fd);width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--mint2);color:var(--teal2)}
+.rv-done{font:700 14px var(--fd);color:var(--ok)}
+html.mobile .rv-screen{max-height:none;padding:14px}
+html.mobile .rv-opt{padding:9px 10px}
 </style>
 </head>
 <body>
@@ -450,6 +487,7 @@ html.mobile .lancet{font-size:11.5px;overflow-x:auto}
     <div class="tag">GEMP 1 · integrated patient sim</div>
     <div class="stack">
       <button class="big go" id="mBegin">Begin shift</button>
+      <button class="btn sec" id="mPapers">Practice papers</button>
       <button class="btn sec" id="mHow">How to play</button>
       <button class="btn sec" id="mAch">Achievements</button>
     </div>
@@ -472,6 +510,8 @@ html.mobile .lancet{font-size:11.5px;overflow-x:auto}
     <button class="btn" data-back>Got it</button>
   </div>
 </section>
+
+<section id="papers" class="screen hide"><div class="card rv-screen" id="papersBox"></div></section>
 
 <section id="ach" class="screen hide"><div class="card" style="max-width:640px"><h2 style="margin:0 0 10px">Achievements</h2><div id="achList"></div><div class="row"><button class="btn" data-back>Back</button></div></div></section>
 
@@ -554,6 +594,8 @@ html.mobile .lancet{font-size:11.5px;overflow-x:auto}
 <script src="js/vendor/ort/ort.wasm.min.js"></script>
 <script src="js/brain.js"></script>
 <script src="js/pharm.js"></script>
+<script src="js/eye1.js"></script>
+<script src="js/review.js"></script>
 <script src="js/engine.js"></script>
 <script src="js/game.js"></script>
 <script src="js/voice.js"></script>

@@ -992,7 +992,9 @@ function stDebrief() {
   ${harms.length ? `<div class="card"><b>What went wrong with your orders</b>${harms.map(h => `<div class="ev ${h.sev}" style="margin-top:8px"><b>${esc(h.title)}</b>${esc(h.msg)}</div>`).join('')}</div>` : ''}
   <div class="card"><b>Illness script — ${esc(def.covers.join(', '))}</b><div class="explain" style="background:transparent;padding:6px 0 0">${esc(val(def.summary, p))}</div><p class="setting" style="margin-top:8px">Source: ${esc(def.src || 'IEYA study guide + illness scripts')}</p></div>
   ${real ? `<div class="card"><b>Textbook comparison — real images from your lecture notes</b><div class="refimg" style="margin-top:8px">${real}</div></div>` : ''}
+  <div class="card" id="eyeRev"></div>
   <div class="row"><button class="btn sec" id="again">Replay this condition with a new patient</button></div>`);
+  if (typeof Review !== 'undefined') Review.debriefCard($('#eyeRev'), def); else $('#eyeRev').remove();
   const bed = SHIFT.bedOf[SHIFT.idx];
   const nextPatient = () => {
     World.setDone(bed);
