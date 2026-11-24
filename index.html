@@ -478,6 +478,31 @@ html.mobile .rv-top{top:-14px;margin:-14px -14px 10px;padding:24px 14px 10px}
 .rv-done{font:700 14px var(--fd);color:var(--ok)}
 html.mobile .rv-screen{max-height:none;overflow:visible;padding:14px}
 html.mobile .rv-opt{padding:9px 10px}
+
+/* condition picker */
+.opt.wide{grid-column:1/-1}
+.pk{background:#fff;border-radius:12px;padding:6px 12px;margin:0 0 8px;box-shadow:inset 0 0 0 2px #e3eae7}
+.pk summary{cursor:pointer;display:flex;justify-content:space-between;gap:10px;align-items:center;padding:4px 0;font-size:16px}
+.pk summary b{font-family:var(--fd);font-weight:600}
+.pkc{color:var(--ink2);font-size:14px;margin-left:auto}
+.pkbar{display:flex;gap:8px;margin:4px 0 8px}.pkbar .btn{padding:5px 12px;font-size:14px}
+.pkl{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px;padding-bottom:8px}
+.opt .pki{display:flex;gap:8px;align-items:flex-start;font:15px Nunito,system-ui,sans-serif !important;margin:0 !important;padding:7px 9px;border-radius:10px;background:var(--paper);cursor:pointer;line-height:1.3}
+.opt .pki input{width:18px;height:18px;margin:1px 0 0;accent-color:var(--teal);flex:none}
+.pki small{display:block;color:var(--ok);font-size:12.5px;font-weight:700}
+.pki:has(input:checked){background:var(--mint2);box-shadow:inset 0 0 0 2px var(--teal)}
+.pksum{margin-top:4px;font-size:15px;color:var(--ink2)}
+html.mobile .pkl{grid-template-columns:1fr}
+#bubble .btn{pointer-events:auto}
+.skiprow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:2px dashed var(--line);font-size:14px}.skiprow .btn{padding:5px 12px;font-size:14px}
+.btn.mic.auto{padding:6px 14px;font-size:15px}
+.orderbox + .btn.mic.auto{margin-top:8px}
+.rv-vsa .btn.mic.auto{padding:10px 14px}
+.smt{display:none}html.mobile #skipBtn .lgt{display:none}html.mobile #skipBtn .smt{display:inline}html.mobile #skipBtn{padding:8px 12px}
+html.mobile .hudr .pill,html.mobile .hudr .btn{white-space:nowrap}
+html.mobile #hud:has(#skipBtn:not(.hide)) .hudr{max-width:66vw}
+html.mobile #hud:has(#skipBtn:not(.hide)) .docbadge .nm{max-width:18vw}
+html.mobile #hud:has(#skipBtn:not(.hide)) .docbadge .xpbar{width:52px}
 </style>
 </head>
 <body>
@@ -523,7 +548,7 @@ html.mobile .rv-opt{padding:9px 10px}
   <div class="title">Choose your doctor</div>
   <div class="card">
     <button class="btn sec arrow" id="csPrev" aria-label="Previous doctor">‹</button>
-    <div class="who"><h2 id="csName"></h2><label class="sr" for="csInput">Your name on the badge</label><input id="csInput" maxlength="28" placeholder="Type your name" autocomplete="name"></div>
+    <div class="who"><h2 id="csName"></h2><label class="sr" for="csInput">Your name on the badge</label><input id="csInput" data-nomic maxlength="28" placeholder="Type your name" autocomplete="name"></div>
     <button class="btn sec arrow" id="csNext" aria-label="Next doctor">›</button>
     <button class="big go" id="csGo">This is me</button>
   </div>
@@ -542,7 +567,8 @@ html.mobile .rv-opt{padding:9px 10px}
       <div class="opt"><label>History & examination</label><div class="seg" id="segClerk"></div><div class="setting" style="margin-top:6px">Quick hands you the clerking so you can revise the rest fast. Full lets you take the history and examine yourself, like an OSCE.</div></div>
       <div class="opt"><label>Test results</label><div class="seg" id="segWait"></div></div>
       <div class="opt"><label>If a sick patient isn't treated in time</label><div class="seg" id="segDie"></div></div>
-      <div class="opt"><label for="pickCase">Specific condition (optional)</label><select id="pickCase"><option value="">Random from the blocks above</option></select></div>
+      <div class="opt"><label>Repeats</label><div class="seg" id="segNew"></div><div class="setting" style="margin-top:6px">A condition you've done before can always be skipped on the ward.</div></div>
+      <div class="opt wide"><label>Conditions</label><div class="setting" style="margin:0 0 8px">Leave them all unticked for a random mix, or tick exactly the ones you want to practise.</div><div id="pickBox"></div><div class="pksum" id="pickSum" aria-live="polite"></div></div>
     </div>
     <div class="ai-status" id="aiStatus">Examiner: checking…</div>
     <div class="row"><button class="big go" id="goBtn">Clock in</button><button class="btn sec" data-back>Back</button></div>
@@ -556,6 +582,7 @@ html.mobile .rv-opt{padding:9px 10px}
   <div class="hudr">
     <span class="pill" id="hdrPt"></span>
     <span class="pill" id="hdrScore2"></span>
+    <button class="btn sec hide" id="skipBtn" title="You've done this condition before: swap in a different patient"><span class="lgt">Skip patient</span><span class="smt">Skip</span></button>
     <button class="btn sec" id="handsBtn" title="When a dictation app such as Handy pastes your spoken question into the chat or exam box, send it automatically">hands-free · on</button>
     <button class="btn sec hide" id="voiceBtn" aria-pressed="false">patient voice · off</button>
     <button class="btn sec" id="quitBtn">End shift</button>

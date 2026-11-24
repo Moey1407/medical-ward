@@ -21,7 +21,7 @@
         target = inp; const base = inp.value ? inp.value.replace(/\s*$/, ' ') : '';
         rec = new SR(); rec.lang = 'en-ZA'; rec.interimResults = true; rec.continuous = inp.tagName === 'TEXTAREA';
         let finalText = '';
-        rec.onresult = e => { let interim = ''; for (let i = e.resultIndex; i < e.results.length; i++) { const t = e.results[i][0].transcript; if (e.results[i].isFinal) finalText += t + ' '; else interim += t; } inp.value = base + finalText + interim; };
+        rec.onresult = e => { let interim = ''; for (let i = e.resultIndex; i < e.results.length; i++) { const t = e.results[i][0].transcript; if (e.results[i].isFinal) finalText += t + ' '; else interim += t; } inp.value = base + finalText + interim; inp.dispatchEvent(new Event('input', {bubbles: true})); };
         rec.onstart = () => { listening = true; mics(); };
         rec.onerror = e => { if (e.error === 'not-allowed' || e.error === 'service-not-allowed') document.querySelectorAll('[data-mic]').forEach(x => x.classList.add('hide')); };
         rec.onend = () => {
@@ -33,6 +33,31 @@
       });
     });
   };
+  /* a mic on every box you can type an answer into, added as boxes appear */
+  let uid = 0;
+  function addMics(root) {
+    if (!SR || !root.querySelectorAll) return;
+    const boxes = [...root.querySelectorAll('textarea, input:not([type]), input[type=text]')];
+    if (root.matches && root.matches('textarea, input:not([type]), input[type=text]')) boxes.push(root);
+    boxes.forEach(inp => {
+      if (inp.dataset.hasmic || inp.hasAttribute('data-nomic') || inp.closest('[data-nomic]') || inp.type === 'hidden') return;
+      if (!inp.id) inp.id = 'vin' + (++uid);
+      inp.dataset.hasmic = '1';
+      if (document.querySelector(`[data-mic="${inp.id}"]`)) return;
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'btn mic auto'; b.dataset.mic = inp.id; b.textContent = 'speak';
+      b.setAttribute('aria-label', 'Speak instead of typing'); b.title = 'Speak instead of typing';
+      const row = inp.tagName === 'TEXTAREA' && inp.nextElementSibling && inp.nextElementSibling.classList.contains('row') ? inp.nextElementSibling : null;
+      if (row) row.appendChild(b);
+      else if (inp.closest('.orderbox')) inp.closest('.orderbox').after(b);
+      else inp.after(b);
+      window.wireVoice(b.parentNode);
+    });
+  }
+  if (SR) {
+    const mo = new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(n => n.nodeType === 1 && addMics(n))));
+    document.addEventListener('DOMContentLoaded', () => { addMics(document.body); mo.observe(document.body, {childList: true, subtree: true}); });
+  }
   function mics() { document.querySelectorAll('[data-mic]').forEach(b => { const on = listening && target && b.dataset.mic === target.id; b.textContent = on ? 'listening… stop' : 'speak'; b.classList.toggle('live', on); }); }
 
   /* ---------- the patient's voice ---------- */

@@ -5,9 +5,11 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&
 const val = (x, p) => typeof x === 'function' ? x(p) : x;
 
 /* ---------- settings & persistence ---------- */
-const S = Object.assign({cats: new Set(['CVS', 'Resp']), n: 3, mode: 'practice', integ: true, pick: '', clerk: 'quick', wait: 'instant', die: false},
-  (() => { try { const o = JSON.parse(localStorage.getItem('wardround.opts') || '{}'); return {clerk: o.clerk || 'quick', wait: o.wait || 'instant', die: !!o.die}; } catch (e) { return {}; } })());
-const saveOpts = () => { try { localStorage.setItem('wardround.opts', JSON.stringify({clerk: S.clerk, wait: S.wait, die: S.die})); } catch (e) {} };
+const S = Object.assign({cats: new Set(['CVS', 'Resp']), n: 3, mode: 'practice', integ: true, picks: new Set(), clerk: 'quick', wait: 'instant', die: false, onlyNew: false},
+  (() => { try { const o = JSON.parse(localStorage.getItem('wardround.opts') || '{}'); const r = {clerk: o.clerk || 'quick', wait: o.wait || 'instant', die: !!o.die, onlyNew: !!o.onlyNew};
+    if (Array.isArray(o.picks)) r.picks = new Set(o.picks.filter(id => CASES.some(k => k.id === id)));
+    if (Array.isArray(o.cats) && o.cats.length) r.cats = new Set(o.cats); return r; } catch (e) { return {}; } })());
+const saveOpts = () => { try { localStorage.setItem('wardround.opts', JSON.stringify({clerk: S.clerk, wait: S.wait, die: S.die, onlyNew: S.onlyNew, picks: [...S.picks], cats: [...S.cats]})); } catch (e) {} };
 const store = {
   get() { try { return JSON.parse(localStorage.getItem('wardround.v1')) || {played: {}}; } catch (e) { return {played: {}}; } },
   put(d) { try { localStorage.setItem('wardround.v1', JSON.stringify(d)); } catch (e) {} },
@@ -22,7 +24,7 @@ function initStart() {
     const b = document.createElement('button');
     b.className = 'cat'; b.setAttribute('aria-pressed', S.cats.has(c.id));
     b.innerHTML = `<b>${c.name}</b><small>${c.sub} · ${n} cases</small>`;
-    b.onclick = () => { S.cats.has(c.id) ? S.cats.delete(c.id) : S.cats.add(c.id); b.setAttribute('aria-pressed', S.cats.has(c.id)); refreshPick(); };
+    b.onclick = () => { S.cats.has(c.id) ? S.cats.delete(c.id) : S.cats.add(c.id); b.setAttribute('aria-pressed', S.cats.has(c.id)); refreshPick(); saveOpts(); };
     cats.appendChild(b);
   });
   seg('#segN', [['1', 1], ['3', 3], ['5', 5], ['8', 8]], v => S.n = v, S.n);
@@ -31,7 +33,7 @@ function initStart() {
   seg('#segClerk', [['Quick: skip to the findings', 'quick'], ['Full clerking (OSCE practice)', 'full']], v => { S.clerk = v; saveOpts(); }, S.clerk);
   seg('#segWait', [['Instant, with real turnaround times', 'instant'], ['Real time (1 min = 1 s)', 'real']], v => { S.wait = v; saveOpts(); }, S.wait);
   seg('#segDie', [['Forgiving: your senior steps in', false], ['Patients can die: level failed', true]], v => { S.die = v; saveOpts(); }, S.die);
-  $('#pickCase').onchange = e => S.pick = e.target.value;
+  seg('#segNew', [['Any', false], ["Only ones I haven't done yet", true]], v => { S.onlyNew = v; saveOpts(); refreshPick(); }, S.onlyNew);
   refreshPick();
   // coverage
   const played = store.get().played;
@@ -47,12 +49,36 @@ function seg(sel, opts, set, cur) {
     el.appendChild(b);
   });
 }
+/* pick any mix of conditions; none ticked = random from the ticked blocks */
 function refreshPick() {
-  const sel = $('#pickCase'); const cur = sel.value;
-  sel.innerHTML = '<option value="">Random from the blocks above</option>' + CATS.filter(c => S.cats.has(c.id)).map(c => `<optgroup label="${c.name}">${CASES.filter(k => k.cat[0] === c.id).map(k => `<option value="${k.id}">${esc(k.title)}</option>`).join('')}</optgroup>`).join('');
-  sel.value = [...sel.options].some(o => o.value === cur) ? cur : '';
-  S.pick = sel.value;
+  const box = $('#pickBox'), played = store.get().played;
+  const open = new Set([...box.querySelectorAll('details[open]')].map(d => d.dataset.cat));
+  // ticks in blocks you switched off don't count
+  [...S.picks].forEach(id => { const k = CASES.find(x => x.id === id); if (!k || !S.cats.has(k.cat[0])) S.picks.delete(id); });
+  box.innerHTML = CATS.filter(c => S.cats.has(c.id)).map(c => {
+    const ks = CASES.filter(k => k.cat[0] === c.id), on = ks.filter(k => S.picks.has(k.id)).length, done = ks.filter(k => played[k.id]).length;
+    return `<details class="pk" data-cat="${c.id}"${open.has(c.id) || on ? ' open' : ''}><summary><b>${esc(c.name)}</b><span class="pkc">${on ? `${on} ticked` : 'any'}${done ? ` · ${done}/${ks.length} done` : ''}</span></summary>
+      <div class="pkbar"><button type="button" class="btn sec" data-all="${c.id}">Tick all</button><button type="button" class="btn sec" data-none="${c.id}">Clear</button></div>
+      <div class="pkl">${ks.map(k => `<label class="pki${played[k.id] ? ' done' : ''}"><input type="checkbox" value="${k.id}"${S.picks.has(k.id) ? ' checked' : ''}><span>${esc(k.title)}${played[k.id] ? `<small>done · best ${played[k.id].best}%</small>` : ''}</span></label>`).join('')}</div></details>`;
+  }).join('') || '<p class="setting" style="margin:0">Tick a block above first.</p>';
+  box.querySelectorAll('input[type=checkbox]').forEach(i => i.onchange = () => { i.checked ? S.picks.add(i.value) : S.picks.delete(i.value); saveOpts(); refreshPick(); });
+  box.querySelectorAll('[data-all],[data-none]').forEach(b => b.onclick = () => {
+    const cat = b.dataset.all || b.dataset.none;
+    CASES.filter(k => k.cat[0] === cat).forEach(k => b.dataset.all ? S.picks.add(k.id) : S.picks.delete(k.id));
+    saveOpts(); refreshPick();
+  });
+  const pool = shiftPool();
+  $('#pickSum').innerHTML = !S.cats.size ? '' : S.picks.size
+    ? `<b>${S.picks.size} condition${S.picks.size === 1 ? '' : 's'}</b> ticked${S.onlyNew ? `, ${pool.length} not done yet` : ''}.`
+    : `Random mix from <b>${CATS.filter(c => S.cats.has(c.id)).map(c => esc(c.name)).join(', ')}</b>${S.onlyNew ? ` (${pool.length} not done yet)` : ''}.`;
   $('#goBtn').disabled = S.cats.size === 0;
+}
+/* the conditions this shift can draw from */
+function shiftPool(all) {
+  const played = store.get().played;
+  let pool = S.picks.size ? CASES.filter(k => S.picks.has(k.id)) : CASES.filter(k => k.cat.some(c => S.cats.has(c)));
+  if (S.onlyNew && !all) pool = pool.filter(k => !played[k.id]);
+  return pool;
 }
 const BR = () => typeof Brain !== 'undefined' && Brain.ready;
 function initAI() {
@@ -105,10 +131,9 @@ function freshPatient(def, seed) {
 let SHIFT = null, P = null, TIMER = null;
 function specOf(p, extra) { return Object.assign({name: p.name, first: p.first, sex: p.sex, age: p.age, skin: p.skin, build: p.build, signs: p.signs.slice(), attach: (p.attach || []).slice(), preg: p.preg, v: p.v}, extra || {}); }
 function startShift() {
-  const pool = CASES.filter(k => k.cat.some(c => S.cats.has(c)));
-  let list = [];
-  if (S.pick) list = Array(S.n).fill(CASES.find(k => k.id === S.pick));
-  else {
+  let pool = shiftPool(), list = [];
+  if (!pool.length) { pool = shiftPool(true); toast("You've done every condition you picked, so repeats are back in."); }
+  {
     // conditions you haven't seen lately come first; the same condition comes back as a different person
     const recent = MEM.get('recent'), age = id => { const i = recent.indexOf(id); return i < 0 ? 1e9 : i; };
     const sh = mkRng((Date.now() ^ (Math.random() * 1e9)) & 0x7fffffff).shuffle(pool).sort((a, b) => age(b.id) - age(a.id));
@@ -136,8 +161,26 @@ function toWard() {
   const p = SHIFT.pts[SHIFT.idx];
   $('#hdrPt').innerHTML = `Patient <b>${SHIFT.idx + 1}</b> / ${SHIFT.list.length}`;
   $('#hdrScore2').innerHTML = `Shift XP <b>${SHIFT.xp}</b>`;
-  nurseSays(`<b>Sister Dlamini:</b> Bed ${bed + 1} — ${esc(p.name)}, ${p.age < 2 ? Math.round(p.age * 12) + ' months' : p.age}. ${esc(p.brief)} ${p.v.sbp < 90 || p.v.sat < 92 || p.v.gcs < 14 ? 'She looks unwell — go now!'.replace('She', p.sex === 'F' ? 'She' : 'He') : 'Can you see them?'}`);
+  const def = SHIFT.list[SHIFT.idx], prev = store.get().played[def.id];
+  nurseSays(`<b>Sister Dlamini:</b> Bed ${bed + 1} — ${esc(p.name)}, ${p.age < 2 ? Math.round(p.age * 12) + ' months' : p.age}. ${esc(p.brief)} ${p.v.sbp < 90 || p.v.sat < 92 || p.v.gcs < 14 ? 'She looks unwell — go now!'.replace('She', p.sex === 'F' ? 'She' : 'He') : 'Can you see them?'}${prev ? `<div class="skiprow"><span>You've done this condition before (best ${prev.best}%).</span><button class="btn sec" type="button" data-skip>Skip, I've done this</button></div>` : ''}`);
+  const sb = $('#skipBtn'); sb.classList.toggle('hide', !prev);
+  document.querySelectorAll('[data-skip],#skipBtn').forEach(b => b.onclick = skipCase);
   hudXP();
+}
+/* swap a repeat for a condition you haven't done (or at least one not already on this shift) */
+function skipCase() {
+  const played = store.get().played, here = new Set(SHIFT.list.map(d => d.id));
+  const pool = shiftPool(true).filter(k => !here.has(k.id));
+  const fresh = pool.filter(k => !played[k.id]), from = fresh.length ? fresh : pool.filter(k => k.id !== SHIFT.list[SHIFT.idx].id);
+  if (!from.length) { toast('Nothing else left in the conditions you picked. Untick some or add another block to get new ones.'); return; }
+  const recent = MEM.get('recent'), age = id => { const i = recent.indexOf(id); return i < 0 ? 1e9 : i; };
+  const nx = from.slice().sort((a, b) => age(b.id) - age(a.id) || Math.random() - .5)[0];
+  const i = SHIFT.idx, bed = SHIFT.bedOf[i];
+  SHIFT.list[i] = nx; SHIFT.pts[i] = freshPatient(nx, (Date.now() ^ (i * 7919)) & 0x7fffffff);
+  MEM.push('recent', [nx.id], 40);
+  if (bed >= 0) World.setBedPatient(bed, specOf(SHIFT.pts[i]));
+  toast(`Swapped for a new patient${fresh.length ? " with a condition you haven't done" : ''}.`);
+  toWard();
 }
 let bubbleTimer = null;
 function nurseSays(html) {
@@ -244,6 +287,7 @@ function loadCase() {
   const p = SHIFT.pts[SHIFT.idx];
   P = {def, p, t: 0, stage: 'arrive', pts: {}, max: {}, log: [], given: [], ordered: {}, asked: new Set(), examined: new Set(), flags: new Set(), notes: [], harms: 0, crashed: false, quick: S.clerk === 'quick', chat: [], profPicked: new Set(), qdone: {}, reveal: []};
   P.mustGiven = new Set();
+  $('#skipBtn').classList.add('hide'); $('#bubble').classList.add('hide');
   $('#hdrCase').textContent = '';
   $('#hud').classList.add('hide'); $('#game').classList.remove('hide'); $('#bubble').classList.add('hide');
   focusView();
@@ -763,10 +807,27 @@ function stExam() {
 
 /* ---------- STAGE 4: mechanisms ---------- */
 async function runQs(host, list, key) { for (const q of list) await askQ(host, q, {label: q.label || ({cause: 'Causes & risk factors', mech: 'Mechanism / pathophysiology', path: 'Pathology', comp: 'Complications', inv: 'Data interpretation', mgmt: 'Management', pharm: 'Pharmacology', integ: 'Integrated patient', micro: 'Microbiology', theme: 'Themes: ethics & public health'}[q.s] || 'Short answer'), key}); }
+/* same question, fresh wording: repeats become recall practice instead of copy-paste */
+const lc1 = t => /^[A-Z][a-z]/.test(t) ? t[0].toLowerCase() + t.slice(1) : t;
+const OWN = [
+  t => `In your own words, ${lc1(t)}`,
+  t => /^Explain /.test(t) ? `Talk me through ${t.slice(8)}` : `${t} Talk me through it in your own words.`,
+  t => `${t} Put it in your own words, as if you were teaching a first-year.`,
+  t => /^Explain [^.?]*[.?]?$/.test(t) ? `Now explain ${t.slice(8).replace(/[.?]\s*$/, '')} in your own words.` : `${t} Answer in your own words.`,
+];
+function reword(text, i, seen) {
+  text = String(text).trim();
+  if (seen) return `You've seen this condition before, so try it from memory: ${lc1(text)}`;
+  return OWN[(i + (P.p.name.length || 0)) % OWN.length](text);
+}
+const WHY = ['Why? Explain the mechanism behind your answer.', 'Now explain why, in your own words.', "What's the reasoning behind that? Put it in your own words.", 'Why is that? Walk me through the mechanism.'];
 async function stReason() {
-  setMain(`<h2>Mechanisms</h2><p class="lead">Explain what's going on underneath — causes, pathophysiology and what it can lead to.</p><div id="rq"></div>`);
+  const seen = store.get().played[P.def.id];
+  setMain(`<h2>Mechanisms</h2><p class="lead">${seen ? `You've managed ${esc(P.def.title)} before (best ${seen.best}%). Answer each one from memory first, then check yourself against the model answer.` : "Explain what's going on underneath, in your own words: causes, pathophysiology and what it can lead to."}</p><div id="rq"></div>`);
   const host = $('#rq');
-  await runQs(host, P.def.Q.filter(q => ['cause', 'mech', 'path', 'comp', 'micro'].includes(q.s)), 'reason');
+  const qs = P.def.Q.filter(q => ['cause', 'mech', 'path', 'comp', 'micro'].includes(q.s))
+    .map((q, i) => Object.assign({}, q, {q: p => reword(val(q.q, p), i, seen && i === 0 || seen && q.s === 'mech'), why: q.why || WHY[(i + P.p.age) % WHY.length]}));
+  await runQs(host, qs, 'reason');
   nextBtn(host, 'Order investigations', () => go('inv'));
 }
 
